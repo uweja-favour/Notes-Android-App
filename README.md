@@ -1,4 +1,4 @@
-# 📓 JetNotes – Modern Notes App with Jetpack Compose
+# 📓 Notes-App – Modern Notes App with Jetpack Compose
 
 Notes-App is a sleek, minimalistic notes application built entirely with **Jetpack Compose**. It provides a modern, responsive UI and intuitive user experience following the latest Android development best practices. This project demonstrates the application of **clean architecture**, **state management**, **MVVM design pattern**, and **Jetpack libraries** in a real-world Android app.
 
