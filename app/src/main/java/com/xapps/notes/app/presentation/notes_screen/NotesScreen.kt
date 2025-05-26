@@ -1,8 +1,6 @@
 package com.xapps.notes.app.presentation.notes_screen
 
-import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
@@ -31,13 +31,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
+import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.presentation.notes_screen.ui_components.NotesScreenBody
 import com.xapps.notes.app.presentation.notes_screen.ui_components.Header
 import com.xapps.notes.app.presentation.shared_ui_components.LoadingScreen
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
-import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK
+import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_NAME
 import com.xapps.notes.ui.theme.appSurfaceColor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,6 +48,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
     modifier: Modifier = Modifier,
@@ -60,13 +64,15 @@ fun NotesScreen(
     val showLoading = rememberSaveable { mutableStateOf(true) }
     var isNotesSortedAlphabetically by remember { mutableStateOf(false) }
 
-//    LaunchedEffect(loadingState) {
-//        delay(330L)
-//        showLoading.value = loadingState
-//    }
+    LaunchedEffect(loadingState) {
+        delay(330L)
+        showLoading.value = loadingState
+    }
 
     val dispatch = remember<suspend (SharedIntent) -> Unit> { {
-        sharedViewModel.dispatch(it)
+        withContext(Dispatchers.IO) {
+            sharedViewModel.dispatch(it)
+        }
     } }
 
     val dateFormatter = remember { DateTimeFormatter.ofPattern("M/d/yyyy", Locale.getDefault()) }
@@ -79,10 +85,11 @@ fun NotesScreen(
         value = withContext(Dispatchers.Default) {
             val filteredNotes = uiState.notes
                 .asSequence()
-                .filterNot { it.noteBookId == "1" || it.isLocked }
+                .filterNot { it.isLocked } // Remove Locked Notes From the Notes Screen
 
-            val finalNotes = if (uiState.currentNoteBook.noteBookId == "100") {
-                filteredNotes
+
+            val finalNotes = if (uiState.currentNoteBook.noteBookId == ALL_NOTEBOOK_ID) {
+                filteredNotes.filterNot { it.noteBookId == RECENTLY_DELETED_NOTEBOOK_ID }
             } else {
                 filteredNotes.filter { it.noteBookId == uiState.currentNoteBook.noteBookId }
             }
@@ -102,6 +109,26 @@ fun NotesScreen(
         }
     }
 
+    var showSearchScreen by rememberSaveable { mutableStateOf(false) }
+    var showAboutAppScreen by rememberSaveable { mutableStateOf(false) }
+    val searchScreenSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val aboutScreenSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var searchQuery by remember { mutableStateOf("") }
+    var job: Job? by remember { mutableStateOf(null) }
+    val searchNoteList by produceState(
+        initialValue = displayedNotes,
+        key1 = searchQuery,
+        key2 = displayedNotes
+    ) {
+        job?.cancel()
+        job = null
+        job = launch(Dispatchers.Default) {
+            value = displayedNotes.filter { it.heading.contains(searchQuery, ignoreCase = true)
+            it.content.contains(searchQuery, ignoreCase = true) || it.noteBookName.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     val checkedNotesIds = remember { mutableStateSetOf<String>() }
     fun handleCheckedChange(noteId: String, selected: Boolean) {
         if (selected) checkedNotesIds.add(noteId) else checkedNotesIds.remove(noteId)
@@ -118,7 +145,7 @@ fun NotesScreen(
         }
     }
 
-    if (loadingState) {
+    if (showLoading.value) {
         LoadingScreen(
             modifier = Modifier
                 .fillMaxSize()
@@ -134,7 +161,10 @@ fun NotesScreen(
                     displayedNotes = displayedNotes,
                     checkedNotesIds = checkedNotesIds,
                     onSearchClick = {
-
+                        scope.launch {
+                            showSearchScreen = true
+                            searchScreenSheetState.expand()
+                        }
                     },
                     onEditClick = {
                        scope.launch {
@@ -161,11 +191,18 @@ fun NotesScreen(
                     },
                     onSortNotesAlphabetically = { shouldSortNotesAlphabetically ->
                         isNotesSortedAlphabetically = shouldSortNotesAlphabetically
+                    },
+                    onAboutAppClick = {
+                        scope.launch {
+                            showAboutAppScreen = true
+                            aboutScreenSheetState.expand()
+                        }
                     }
                 )
             },
             bottomBar = {
                 NotesScreenBottomBar(
+                    currentNoteBookId = uiState.currentNoteBook.noteBookId,
                     noOfCheckedNotes = checkedNotesIds.size,
                     notesScreenEditMode = uiState.notesScreenEditMode,
                     onMoveCheckedNotes = {
@@ -192,6 +229,17 @@ fun NotesScreen(
                             )
                             checkedNotesIds.clear()
                         }
+                    },
+                    onDeleteCheckedNotesForever = {
+                        scope.launch {
+                            dispatch(
+                                SharedIntent.OnDeleteCheckedNotesForever(checkedNotesIds)
+                            )
+                            dispatch(
+                                SharedIntent.OnToggleNotesScreenEditMode(false)
+                            )
+                            checkedNotesIds.clear()
+                        }
                     }
                 )
             },
@@ -205,7 +253,7 @@ fun NotesScreen(
                     onClick = {
                         onNavigateToAddNewNote(
                             if (uiState.currentNoteBook.noteBookId == "100") "0" else uiState.currentNoteBook.noteBookId,
-                            if (uiState.currentNoteBook.title == ALL_NOTES) DEFAULT_NOTE_BOOK else uiState.currentNoteBook.title
+                            if (uiState.currentNoteBook.title == ALL_NOTES) DEFAULT_NOTE_BOOK_NAME else uiState.currentNoteBook.title
                         )
                     },
                     shape = CircleShape,
@@ -268,6 +316,35 @@ fun NotesScreen(
                         handleCheckedChange = ::handleCheckedChange
                     )
                 }
+            }
+
+            if (showSearchScreen) {
+                SearchScreen(
+                    sheetState = searchScreenSheetState,
+                    onDismiss = {
+                        scope.launch {
+                            searchScreenSheetState.hide()
+                            showSearchScreen = false
+                        }
+                    },
+                    noteList = searchNoteList,
+                    searchQuery = searchQuery,
+                    updateSearchQuery = {
+                        searchQuery = it
+                    }
+                )
+            }
+
+            if (showAboutAppScreen) {
+                AboutAppScreen(
+                    sheetState = aboutScreenSheetState,
+                    onDismiss = {
+                        scope.launch {
+                            aboutScreenSheetState.hide()
+                            showAboutAppScreen = false
+                        }
+                    }
+                )
             }
         }
     }

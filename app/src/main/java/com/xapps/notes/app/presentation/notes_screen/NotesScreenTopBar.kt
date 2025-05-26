@@ -39,6 +39,7 @@ fun NotesScreenTopBar(
     onCancelClick: () -> Unit,
     onSelectAllClick: () -> Unit,
     onDeselectAllClick: () -> Unit,
+    onAboutAppClick: () -> Unit,
     onSortNotesAlphabetically: (Boolean) -> Unit
 ) {
 
@@ -58,7 +59,8 @@ fun NotesScreenTopBar(
             isNotesSortedAlphabetically = isNotesSortedAlphabetically,
             onSortNotesAlphabetically = onSortNotesAlphabetically,
             onSearchClick = onSearchClick,
-            onEditClick = onEditClick
+            onEditClick = onEditClick,
+            onAboutAppClick = onAboutAppClick
         )
     }
 }
@@ -147,7 +149,8 @@ private fun DefaultNotesScreenTopBar(
     isNotesSortedAlphabetically: Boolean,
     onSortNotesAlphabetically: (Boolean) -> Unit,
     onSearchClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onAboutAppClick: () -> Unit
 ) {
     var optionsDropDownMenuVisibility by remember { mutableStateOf(false) }
 
@@ -185,12 +188,12 @@ private fun DefaultNotesScreenTopBar(
                 expanded = optionsDropDownMenuVisibility,
                 sortNotesAlphabetically = isNotesSortedAlphabetically,
                 onEdit = {
-                    if (noOfCheckedNotes >= 1) {
+//                    if (noOfCheckedNotes >= 1) {
                         onEditClick()
-                    }
+//                    }
                 },
-                onNavigateToSettingsScreen = {
-
+                onAboutAppClick = {
+                    onAboutAppClick()
                 },
                 onSortAlphabetically = {
                     onSortNotesAlphabetically(true)

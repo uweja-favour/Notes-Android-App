@@ -35,6 +35,7 @@ class NotesScreenRepoImpl(
     init {
         CoroutineScope(Dispatchers.IO).launch {
             _notesFlow.value = fetchNotes()
+            _noteBookFlow.value = fetchNoteBooks()
         }
     }
 

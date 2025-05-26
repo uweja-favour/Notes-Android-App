@@ -5,6 +5,7 @@ import androidx.compose.ui.util.fastMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xapps.notes.app.Logger
+import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
 import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
@@ -16,6 +17,7 @@ import com.xapps.notes.app.domain.state.allNoteBook
 import com.xapps.notes.app.domain.state.defaultNoteBook
 import com.xapps.notes.app.domain.state.generateUniqueId
 import com.xapps.notes.app.domain.state.recentlyDeletedNoteBook
+import com.xapps.notes.app.presentation.util.Constants.RECENTLY_DELETED_NOTEBOOK_NAME
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,10 +79,11 @@ class SharedViewModel(
         }
     }
 
-    suspend fun dispatch(intent: SharedIntent) {
-        when(intent) {
+    suspend fun dispatch(intent: SharedIntent): Boolean {
+        return when(intent) {
             is SharedIntent.OnClickNoteBookCard -> {
                 updateSelectedNoteBookCard(intent.noteBook)
+                true
             }
             is SharedIntent.OnAddNewNoteBook -> {
                 addNewNoteBook(intent.noteBookName, intent.noteBookColor)
@@ -88,12 +91,27 @@ class SharedViewModel(
             is SharedIntent.OnDeleteCheckedNoteBooks -> {
                 deleteCheckedNoteBooks(intent.checkedNoteBooksIds)
             }
-            is SharedIntent.OnLockCheckedNoteBooks -> lockCheckedNoteBooks(intent.checkedNoteBooksIds)
-            is SharedIntent.OnEditCheckedNoteBook -> editCheckedNoteBook(intent.color, intent.title, intent.checkedNoteBookId)
-            is SharedIntent.OnToggleNotesScreenEditMode -> onToggleNotesScreenEditMode(intent.editMode)
-            is SharedIntent.OnLockCheckedNotes -> onLockCheckedNotes(intent.checkedNotesIds)
-            is SharedIntent.OnDeleteCheckedNotes -> onDeleteCheckedNotes(intent.checkedNotesIds)
-            is SharedIntent.OnUnlockLockedNotes -> onUnLockCheckedNotes(intent.checkedNotesIds)
+            is SharedIntent.OnLockCheckedNoteBooks -> {
+                lockCheckedNoteBooks(intent.checkedNoteBooksIds)
+            }
+            is SharedIntent.OnEditCheckedNoteBook -> {
+                editCheckedNoteBook(intent.color, intent.title, intent.checkedNoteBookId)
+            }
+            is SharedIntent.OnToggleNotesScreenEditMode -> {
+                onToggleNotesScreenEditMode(intent.editMode)
+            }
+            is SharedIntent.OnLockCheckedNotes -> {
+                onLockCheckedNotes(intent.checkedNotesIds)
+            }
+            is SharedIntent.OnDeleteCheckedNotes -> {
+                onDeleteCheckedNotes(deleteForever = false, intent.checkedNotesIds)
+            }
+            is SharedIntent.OnDeleteCheckedNotesForever -> {
+                onDeleteCheckedNotes(deleteForever = true, intent.checkedNotesIds)
+            }
+            is SharedIntent.OnUnlockLockedNotes -> {
+                onUnLockCheckedNotes(intent.checkedNotesIds)
+            }
         }
     }
 
@@ -108,8 +126,8 @@ class SharedViewModel(
         }
     }
 
-    private suspend fun addNewNoteBook(noteBookTitle: String, noteBookColor: Color) {
-        withContext(Dispatchers.IO) {
+    private suspend fun addNewNoteBook(noteBookTitle: String, noteBookColor: Color): Boolean {
+        return try{
             repo.addNoteBook(
                 NoteBook(
                     title = noteBookTitle,
@@ -117,17 +135,25 @@ class SharedViewModel(
                     noteBookId = generateUniqueId()
                 )
             )
+            true
+        } catch (e: Exception) {
+            e.message?.let { Logger.logError(it) }
+            false
         }
     }
 
-    private suspend fun deleteCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
-        withContext(Dispatchers.IO) {
+    private suspend fun deleteCheckedNoteBooks(checkedNoteBooksIds: Set<String>): Boolean {
+        return try {
             repo.deleteNoteBooks(noteBookIds = checkedNoteBooksIds.toList())
+            true
+        } catch (e: Exception) {
+            e.message?.let { Logger.logError(it) }
+            false
         }
     }
 
-    private suspend fun lockCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
-        withContext(Dispatchers.IO) {
+    private suspend fun lockCheckedNoteBooks(checkedNoteBooksIds: Set<String>): Boolean {
+        return try {
             val state = state.value
             val newNoteList = state.notes.fastMap {
                 if (it.noteBookId in checkedNoteBooksIds) it.copy(isLocked = true)
@@ -138,32 +164,39 @@ class SharedViewModel(
             // Ensure to call the replaceAllNotes after the deleteNoteBooks has completed
             repo.deleteNoteBooks(checkedNoteBooksIds.toList())
             repo.replaceAllNotes { newNoteList }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
-    private suspend fun editCheckedNoteBook(color: Color, title: String, checkedNoteBooksId: String) {
-        withContext(Dispatchers.IO) {
+    private suspend fun editCheckedNoteBook(color: Color, title: String, checkedNoteBooksId: String): Boolean {
+        return try {
             val state = state.value
             val newNoteBookList = state.noteBooks.fastMap {
                 if (it.noteBookId == checkedNoteBooksId) it.copy(color = color, title = title)
                 else it
             }
             repo.replaceAllNoteBooks { newNoteBookList }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
-    private fun onToggleNotesScreenEditMode(notesScreenEditMode: Boolean) {
+    private fun onToggleNotesScreenEditMode(notesScreenEditMode: Boolean): Boolean {
         updateState { it.copy(
             notesScreenEditMode = notesScreenEditMode
         ) }
+        return true
     }
 
-    private suspend fun onLockCheckedNotes(checkedNotesIds: Set<String>) {
-        withContext(Dispatchers.IO) {
+    private suspend fun onLockCheckedNotes(checkedNotesIds: Set<String>): Boolean {
+        return try {
             val currentNotes = state.value.notes
 
             // Avoid unnecessary allocations if nothing is checked
-            if (checkedNotesIds.isEmpty()) return@withContext
+            if (checkedNotesIds.isEmpty()) return true
 
             // Efficiently map only when needed
             val updatedNotes = buildList {
@@ -176,15 +209,18 @@ class SharedViewModel(
                 }
             }
             repo.replaceAllNotes{ updatedNotes }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
-    private suspend fun onUnLockCheckedNotes(checkedNotesIds: Set<String>) {
-        withContext(Dispatchers.IO) {
+    private suspend fun onUnLockCheckedNotes(checkedNotesIds: Set<String>): Boolean {
+        return try {
             val currentNotes = state.value.notes
 
             // Avoid unnecessary allocations if nothing is checked
-            if (checkedNotesIds.isEmpty()) return@withContext
+            if (checkedNotesIds.isEmpty()) return true
 
             // Efficiently map only when needed
             val updatedNotes = buildList {
@@ -197,14 +233,45 @@ class SharedViewModel(
                 }
             }
             repo.replaceAllNotes{ updatedNotes }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
+    private suspend fun onDeleteCheckedNotes(
+        deleteForever: Boolean = false,
+        checkedNotesIds: Set<String>
+    ): Boolean {
+        return try {
+            when (deleteForever) {
+                true -> {
+                    val newNoteList = state.value.notes.filterNot { it.noteId in checkedNotesIds }
+                    repo.replaceAllNotes { newNoteList }
+                }
 
-    private suspend fun onDeleteCheckedNotes(checkedNotesIds: Set<String>) {
-        withContext(Dispatchers.IO) {
-            val newNoteList = state.value.notes.filterNot { it.noteId in checkedNotesIds }
-            repo.replaceAllNotes { newNoteList }
+                else -> {
+                    val newNoteList = state.value.notes.map {
+                        if (it.noteId in checkedNotesIds) {
+                            Note(
+                                heading = it.heading,
+                                content = it.content,
+                                dateModified = it.dateModified,
+                                timeModified = it.timeModified,
+                                noteId = it.noteId,
+                                noteBookId = RECENTLY_DELETED_NOTEBOOK_ID,
+                                noteBookName = RECENTLY_DELETED_NOTEBOOK_NAME,
+                                isLocked = it.isLocked
+                            )
+                        } else
+                            it
+                    }
+                    repo.replaceAllNotes { newNoteList }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

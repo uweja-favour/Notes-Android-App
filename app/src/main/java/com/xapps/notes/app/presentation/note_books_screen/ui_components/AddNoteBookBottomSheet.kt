@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,20 +56,20 @@ import com.xapps.notes.ui.theme.rosePink
 import com.xapps.notes.ui.theme.skyBlue
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteBookBottomSheet(
-    showSheet: Boolean,
     sheetHeight: Dp = (LocalConfiguration.current.screenHeightDp / 2.5f).dp,
-    onSave: (String, Color) -> Unit,
+    onSave: suspend (String, Color) -> Boolean,
+    sheetState: SheetState,
     onDismissRequest: () -> Unit
 ) {
     val colorList = remember { listOf(goldenYellow, peach, rosePink, skyBlue, lavender, aestheticHue) }
 
-
     NotebookBottomSheet(
-        showSheet = showSheet,
         sheetHeight = sheetHeight,
         colorList = colorList,
+        sheetState = sheetState,
         onSave = onSave,
         onDismissRequest = onDismissRequest
     )
@@ -79,13 +80,12 @@ fun AddNoteBookBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NotebookBottomSheet(
-    showSheet: Boolean,
     sheetHeight: Dp,
     colorList: List<Color>,
-    onSave: (String, Color) -> Unit,
+    sheetState: SheetState,
+    onSave: suspend(String, Color) -> Boolean,
     onDismissRequest: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
@@ -100,157 +100,153 @@ private fun NotebookBottomSheet(
     }
     var chosenColor by remember { mutableStateOf(colorList[0]) }
 
-    LaunchedEffect(showSheet) {
-        if (showSheet) sheetState.expand()
-    }
-
     LaunchedEffect(sheetState.currentValue) {
         if (sheetState.currentValue == SheetValue.Expanded) {
             focusRequester.requestFocus()
         }
     }
 
-    if (showSheet) {
-        ModalBottomSheet(
-            sheetState = sheetState,
-            onDismissRequest = {
-                scope.launch { sheetState.hide(); onDismissRequest() }
-            },
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            notebookName = ""
+            fieldValue = TextFieldValue(text = "")
+            onDismissRequest()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(sheetHeight)
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(sheetHeight)
+                .fillMaxSize()
+                .padding(horizontal = Dimens.spacingMedium)
+                .padding(bottom = Dimens.spacingMedium)
         ) {
-            Column(
+            // Top Buttons
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = Dimens.spacingMedium)
-                    .padding(bottom = Dimens.spacingMedium)
+                    .fillMaxWidth()
+                    .padding(bottom = Dimens.spacingMedium),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Top Buttons
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = Dimens.spacingMedium),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                sheetState.hide()
-                                onDismissRequest()
-                            }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            sheetState.hide()
+                            onDismissRequest()
                         }
-                    ) {
-                        Text(
-                            text = stringResource(R.string.cancel),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = Dimens.textSubtitle,
-                            color = goldenYellow
-                        )
                     }
-
+                ) {
                     Text(
-                        text = stringResource(R.string.new_notebook),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = Dimens.textTitle
+                        text = stringResource(R.string.cancel),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = Dimens.textSubtitle,
+                        color = goldenYellow
                     )
-
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                onSave(notebookName.trim(), chosenColor)
-                                sheetState.hide()
-                                onDismissRequest()
-                            }
-                        },
-                        enabled = notebookName.isNotBlank()
-                    ) {
-                        Text(
-                            text = stringResource(R.string.save),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = Dimens.textSubtitle,
-                            color = if (notebookName.isNotBlank()) goldenYellow else Color.LightGray
-                        )
-                    }
                 }
 
-                // TextField
-                TextField(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = Dimens.spacingSmall)
-                        .focusRequester(focusRequester)
-                        .onFocusChanged {
-                            if (it.isFocused) {
-                                fieldValue = fieldValue.copy(selection = TextRange(notebookName.length))
-                            }
-                        },
-                    value = fieldValue,
-                    onValueChange = {
-                        fieldValue = it
-                        notebookName = it.text
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.Article,
-                            contentDescription = null,
-                            tint = chosenColor
-                        )
-                    },
-                    maxLines = 1,
-                    placeholder = {
-                        Text(
-                            text = stringResource(R.string.notebook_name),
-                            color = Color.LightGray
-                        )
-                    }
+                Text(
+                    text = stringResource(R.string.new_notebook),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = Dimens.textTitle
                 )
 
-                // Color Picker
-                Card(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(Dimens.radiusMedium)
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            onSave(notebookName.trim(), chosenColor)
+                            onDismissRequest()
+                        }
+                    },
+                    enabled = notebookName.isNotBlank()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(Dimens.spacingSmall)
-                    ) {
-                        Text(
-                            textAlign = TextAlign.Start,
-                            fontWeight = FontWeight.Bold,
-                            text = stringResource(R.string.select_color),
-                            fontSize = Dimens.textCaption,
-                            color = Color.DarkGray
-                        )
+                    Text(
+                        text = stringResource(R.string.save),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = Dimens.textSubtitle,
+                        color = if (notebookName.isNotBlank()) goldenYellow else Color.LightGray
+                    )
+                }
+            }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(Dimens.spacingSmall)
-                                .height(60.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            colorList.forEach { color ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .onTap { chosenColor = color },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircleRing(
-                                        modifier = Modifier.fillMaxSize(),
-                                        color = color,
-                                        isSelected = chosenColor == color
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
+            // TextField
+            TextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = Dimens.spacingSmall)
+                    .focusRequester(focusRequester)
+                    .onFocusChanged {
+                        if (it.isFocused) {
+                            fieldValue = fieldValue.copy(selection = TextRange(notebookName.length))
+                        }
+                    },
+                value = fieldValue,
+                onValueChange = {
+                    fieldValue = it
+                    notebookName = it.text
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.Article,
+                        contentDescription = null,
+                        tint = chosenColor
+                    )
+                },
+                maxLines = 1,
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.notebook_name),
+                        color = Color.LightGray
+                    )
+                }
+            )
+
+            // Color Picker
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(Dimens.radiusMedium)
+            ) {
+                Column(
+                    modifier = Modifier.padding(Dimens.spacingSmall)
+                ) {
+                    Text(
+                        textAlign = TextAlign.Start,
+                        fontWeight = FontWeight.Bold,
+                        text = stringResource(R.string.select_color),
+                        fontSize = Dimens.textCaption,
+                        color = Color.DarkGray
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Dimens.spacingSmall)
+                            .height(60.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        colorList.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .onTap { chosenColor = color },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircleRing(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = color,
+                                    isSelected = chosenColor == color
+                                )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                         }
                     }
                 }
             }
         }
     }
+
 }

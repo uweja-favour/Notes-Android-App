@@ -9,7 +9,10 @@ import androidx.compose.foundation.overscroll
 import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,8 +27,12 @@ import com.xapps.notes.app.presentation.notes_screen.SharedIntent
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES_BOOK_ID
 import com.xapps.notes.ui.theme.Dimens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun NoteBooksBody(
@@ -47,8 +54,13 @@ fun NoteBooksBody(
     BackHandler(enabled = checkBoxActiveState, onBack = onBackPress)
 
     val scope = rememberCoroutineScope()
-    val dispatch = remember<suspend (SharedIntent) -> Unit> { { sharedViewModel.dispatch(it) } }
-    var showBottomSheet by remember { mutableStateOf(false) }
+    val dispatch = remember<suspend (SharedIntent) -> Boolean> { {
+        withContext(Dispatchers.IO) {
+            sharedViewModel.dispatch(it)
+        }
+    } }
+    var showAddNoteBookBottomSheet by remember { mutableStateOf(false) }
+    val addNoteBookSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val sheetHeight = (LocalConfiguration.current.screenHeightDp / 2.5f).dp
     val scrollState = rememberScrollState()
@@ -69,7 +81,7 @@ fun NoteBooksBody(
 
         MyNoteBooksHeader(
             checkBoxActiveState = checkBoxActiveState,
-            onAddNewClick = { showBottomSheet = true }
+            onAddNewClick = { showAddNoteBookBottomSheet = true }
         )
         Spacer(modifier = Modifier.height(Dimens.spacingSmall))
 
@@ -102,10 +114,17 @@ fun NoteBooksBody(
         )
     }
 
-    AddNoteBookBottomSheet(
-        showSheet = showBottomSheet,
-        sheetHeight = sheetHeight,
-        onSave = { name, color ->  scope.launch{ dispatch(SharedIntent.OnAddNewNoteBook(name, color)) }},
-        onDismissRequest = { showBottomSheet = false }
-    )
+    if (showAddNoteBookBottomSheet) {
+        AddNoteBookBottomSheet(
+            sheetHeight = sheetHeight,
+            sheetState = addNoteBookSheetState,
+            onSave = { name, color -> dispatch(SharedIntent.OnAddNewNoteBook(name, color)) },
+            onDismissRequest = {
+                scope.launch {
+                    addNoteBookSheetState.hide()
+                    showAddNoteBookBottomSheet = false
+                }
+            }
+        )
+    }
 }

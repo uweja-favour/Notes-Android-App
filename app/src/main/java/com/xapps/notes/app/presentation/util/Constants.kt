@@ -3,8 +3,8 @@ package com.xapps.notes.app.presentation.util
 object Constants {
     const val SAVED = "Saved"
     const val ALL_NOTES = "All notes"
-    const val DEFAULT_NOTE_BOOK = "Default notebook"
-    const val RECENTLY_DELETED = "Recently deleted"
+    const val DEFAULT_NOTE_BOOK_NAME = "Default notebook"
+    const val RECENTLY_DELETED_NOTEBOOK_NAME = "Recently deleted"
     const val GO_ON = "Go to"
     const val ALL_NOTES_BOOK_ID = "100"
     const val DEFAULT_NOTE_BOOK_ID = "0"

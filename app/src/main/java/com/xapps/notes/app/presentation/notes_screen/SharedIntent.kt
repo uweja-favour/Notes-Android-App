@@ -12,5 +12,6 @@ sealed class SharedIntent {
     data class OnToggleNotesScreenEditMode(val editMode: Boolean) : SharedIntent()
     data class OnLockCheckedNotes(val checkedNotesIds: Set<String>) : SharedIntent()
     data class OnDeleteCheckedNotes(val checkedNotesIds: Set<String>) : SharedIntent()
+    data class OnDeleteCheckedNotesForever(val checkedNotesIds: Set<String>) : SharedIntent()
     data class OnUnlockLockedNotes(val checkedNotesIds: Set<String>) : SharedIntent()
 }

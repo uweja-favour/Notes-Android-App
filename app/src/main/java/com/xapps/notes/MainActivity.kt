@@ -18,6 +18,7 @@ import com.xapps.notes.app.domain.state.NotesScreenStateStore
 import com.xapps.notes.app.presentation.authentication_screen.AuthenticationScreen
 import com.xapps.notes.app.presentation.locked_notes_screen.LockedNotesScreen
 import com.xapps.notes.app.presentation.note_books_screen.NoteBookScreen
+import com.xapps.notes.app.presentation.note_books_screen.NoteBookScreenVM
 import com.xapps.notes.app.presentation.note_view_screen.NoteViewScreen
 import com.xapps.notes.app.presentation.notes_screen.NotesScreen
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
@@ -51,6 +52,7 @@ class MainActivity : FragmentActivity() {
 @Composable
 private fun NotesApp() {
     val sharedViewModel = koinViewModel<SharedViewModel>()
+    val noteBookScreenVM = koinViewModel<NoteBookScreenVM>()
     val navController = rememberNavController()
 
     NavHost(
@@ -94,6 +96,7 @@ private fun NotesApp() {
         composable<NoteBooksRoute> {
             NoteBookScreen(
                 sharedViewModel = sharedViewModel,
+                noteBookScreenVM = noteBookScreenVM,
                 onNavigate = {
                     navController.popBackStack()
                 },

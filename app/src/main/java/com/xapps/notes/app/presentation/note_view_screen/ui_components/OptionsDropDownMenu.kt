@@ -22,7 +22,7 @@ fun OptionsDropdownMenu(
     sortNotesAlphabetically: Boolean,
     onDismissRequest: () -> Unit,
     onEdit: () -> Unit,
-    onNavigateToSettingsScreen: () -> Unit,
+    onAboutAppClick: () -> Unit,
     onSortAlphabetically: () -> Unit,
     onSortByTimeEdited: () -> Unit
 ) {
@@ -36,16 +36,13 @@ fun OptionsDropdownMenu(
             DropdownMenuItem(
                 text = { Text("Edit") },
                 onClick = {
-                    onDismissRequest()
                     onEdit()
+                    onDismissRequest()
                 }
             )
             DropdownMenuItem(
-                text = { Text("Settings") },
-                onClick = {
-                    onDismissRequest()
-                    onNavigateToSettingsScreen()
-                }
+                text = { Text("About App") },
+                onClick = onAboutAppClick
             )
             HorizontalDivider(thickness = 1.dp)
             DropdownMenuItem(

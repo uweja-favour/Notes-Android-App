@@ -20,7 +20,7 @@ import org.koin.dsl.module
 val appModule = module {
     viewModel { SharedViewModel(get()) }
     viewModel { NoteViewVM(get()) }
-    viewModel { NoteBookScreenVM() }
+    viewModel { NoteBookScreenVM(get()) }
 
     single<NotesScreenRepo> { NotesScreenRepoImpl(get()) }
 }

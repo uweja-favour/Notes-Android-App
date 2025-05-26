@@ -3,8 +3,8 @@ package com.xapps.notes.app.domain.state
 import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
-import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK
-import com.xapps.notes.app.presentation.util.Constants.RECENTLY_DELETED
+import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_NAME
+import com.xapps.notes.app.presentation.util.Constants.RECENTLY_DELETED_NOTEBOOK_NAME
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,14 +15,13 @@ const val DEFAULT_NOTEBOOK_ID = "0"
 const val RECENTLY_DELETED_NOTEBOOK_ID = "1"
 const val ALL_NOTEBOOK_ID = "100"
 
-
 val defaultNoteBook = NoteBook(
-    title = DEFAULT_NOTE_BOOK,
+    title = DEFAULT_NOTE_BOOK_NAME,
     noteBookId = DEFAULT_NOTEBOOK_ID
 )
 
 val recentlyDeletedNoteBook = NoteBook(
-   title = RECENTLY_DELETED,
+   title = RECENTLY_DELETED_NOTEBOOK_NAME,
    noteBookId = RECENTLY_DELETED_NOTEBOOK_ID
 )
 
