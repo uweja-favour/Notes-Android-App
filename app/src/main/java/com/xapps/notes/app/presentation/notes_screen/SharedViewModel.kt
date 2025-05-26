@@ -22,11 +22,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 
 class SharedViewModel(
@@ -130,7 +128,7 @@ class SharedViewModel(
         return try{
             repo.addNoteBook(
                 NoteBook(
-                    title = noteBookTitle,
+                    noteBookTitle = noteBookTitle,
                     color = noteBookColor,
                     noteBookId = generateUniqueId()
                 )
@@ -174,7 +172,7 @@ class SharedViewModel(
         return try {
             val state = state.value
             val newNoteBookList = state.noteBooks.fastMap {
-                if (it.noteBookId == checkedNoteBooksId) it.copy(color = color, title = title)
+                if (it.noteBookId == checkedNoteBooksId) it.copy(color = color, noteBookTitle = title)
                 else it
             }
             repo.replaceAllNoteBooks { newNoteBookList }

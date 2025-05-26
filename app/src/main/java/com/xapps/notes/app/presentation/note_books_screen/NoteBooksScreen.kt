@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -18,9 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xapps.notes.app.data.notes_screen.local.NoteBook
-import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
-import com.xapps.notes.app.domain.state.DEFAULT_NOTEBOOK_ID
-import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.presentation.note_books_screen.ui_components.EditBottomSheet
 import com.xapps.notes.app.presentation.note_books_screen.ui_components.NoteBooksBody
 import com.xapps.notes.app.presentation.notes_screen.SharedIntent
@@ -30,7 +26,6 @@ import com.xapps.notes.ui.theme.appSurfaceColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,7 +167,7 @@ fun NoteBookScreen(
 
             if (showEditNoteBookSheet) {
                 editableNotebook?.color?.let {
-                    editableNotebook?.title?.let { it1 ->
+                    editableNotebook?.noteBookTitle?.let { it1 ->
                         EditBottomSheet(
                             sheetState = editNoteBookSheetState,
                             title = it1,

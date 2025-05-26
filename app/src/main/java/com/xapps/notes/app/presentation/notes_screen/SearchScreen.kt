@@ -115,8 +115,7 @@ fun SearchScreen(
                         .fillMaxHeight()
                         .fillMaxWidth(.85f)
                         .verticalScroll(rememberScrollState())
-                        .overscroll(rememberOverscrollEffect())
-                        .background(Color.Red),
+                        .overscroll(rememberOverscrollEffect()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Card(

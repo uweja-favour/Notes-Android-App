@@ -16,17 +16,17 @@ const val RECENTLY_DELETED_NOTEBOOK_ID = "1"
 const val ALL_NOTEBOOK_ID = "100"
 
 val defaultNoteBook = NoteBook(
-    title = DEFAULT_NOTE_BOOK_NAME,
+    noteBookTitle = DEFAULT_NOTE_BOOK_NAME,
     noteBookId = DEFAULT_NOTEBOOK_ID
 )
 
 val recentlyDeletedNoteBook = NoteBook(
-   title = RECENTLY_DELETED_NOTEBOOK_NAME,
+   noteBookTitle = RECENTLY_DELETED_NOTEBOOK_NAME,
    noteBookId = RECENTLY_DELETED_NOTEBOOK_ID
 )
 
 val allNoteBook = NoteBook(
-    title = ALL_NOTES,
+    noteBookTitle = ALL_NOTES,
     noteBookId = ALL_NOTEBOOK_ID
 )
 

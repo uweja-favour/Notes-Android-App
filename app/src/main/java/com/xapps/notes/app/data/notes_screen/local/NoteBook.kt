@@ -8,6 +8,6 @@ const val NOTE_BOOK_TABLE = "note_book_table"
 @Entity(tableName = NOTE_BOOK_TABLE)
 data class NoteBook(
     @PrimaryKey val noteBookId: String = "0",
-    val title: String = "",
+    val noteBookTitle: String = "",
     val color: Color = Color.Blue
 )

@@ -17,10 +17,15 @@ import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.presentation.notes_screen.ui_components.NoteCard
 import com.xapps.notes.app.presentation.notes_screen.ui_components.PlaceholderView
+import com.xapps.notes.app.presentation.util.onNavigateToNoteViewScreen
+import com.xapps.notes.app.presentation.util.toastThis
 import com.xapps.notes.ui.theme.Dimens
 import com.xapps.notes.ui.theme.appContainerColor
 
@@ -28,20 +33,14 @@ import com.xapps.notes.ui.theme.appContainerColor
 fun LockedNotesBody(
     modifier: Modifier = Modifier,
     lockedNotes: List<Note>,
+    navController: NavHostController,
     checkBoxIsActive: Boolean,
     handleCheckedChange: (String, Boolean) -> Unit,
     isNoteChecked: (String) -> Boolean,
-    checkedNotesIds: SnapshotStateSet<String>,
-    onNavigateToViewExistingNote: (
-        String,
-        String,
-        String,
-        String,
-        String,
-        String,
-        String
-    ) -> Unit
+    checkedNotesIds: SnapshotStateSet<String>
 ) {
+
+    val context = LocalContext.current
     if (lockedNotes.isNotEmpty()) {
         Column(
             modifier = modifier
@@ -68,15 +67,11 @@ fun LockedNotesBody(
                                         }
 //                                            noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId
                                         else {
-                                            onNavigateToViewExistingNote(
-                                                note.noteBookId,
-                                                note.noteBookName,
-                                                note.heading,
-                                                note.content,
-                                                note.dateModified,
-                                                note.timeModified,
-                                                note.noteId
-                                            ) // navigates to view notes content
+                                            try {
+                                                onNavigateToNoteViewScreen(note, navController = navController)
+                                            } catch (e: Exception) {
+                                                toastThis(msg = "Navigation failed: ${e.message}", context)
+                                            }
                                         }
                                     },
                                     onLongPress = {

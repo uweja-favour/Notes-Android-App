@@ -70,7 +70,7 @@ fun Header(
                     TinyCard(
                         modifier = Modifier
                             .padding(horizontal = 4.dp, vertical = 8.dp),
-                        text = noteBook.title,
+                        text = noteBook.noteBookTitle,
                         isSelected = selectedNoteBook.noteBookId == noteBook.noteBookId,
                         noteBook = noteBook,
                         onClick = {

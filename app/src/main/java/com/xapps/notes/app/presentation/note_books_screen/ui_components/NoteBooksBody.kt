@@ -64,7 +64,7 @@ fun NoteBooksBody(
 
     val sheetHeight = (LocalConfiguration.current.screenHeightDp / 2.5f).dp
     val scrollState = rememberScrollState()
-    val overscrollEffect = rememberOverscrollEffect() // <-- bounce effect
+    val overscrollEffect = rememberOverscrollEffect()
 
     Column(
         modifier = modifier

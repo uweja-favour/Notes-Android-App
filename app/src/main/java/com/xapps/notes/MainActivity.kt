@@ -1,5 +1,6 @@
 package com.xapps.notes
 
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,23 +9,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.xapps.notes.app.domain.state.NotesScreenStateStore
+import com.xapps.notes.app.presentation.add_note_screen.AddNoteScreen
+import com.xapps.notes.app.presentation.add_note_screen.AddNoteScreenVM
 import com.xapps.notes.app.presentation.authentication_screen.AuthenticationScreen
 import com.xapps.notes.app.presentation.locked_notes_screen.LockedNotesScreen
 import com.xapps.notes.app.presentation.note_books_screen.NoteBookScreen
 import com.xapps.notes.app.presentation.note_books_screen.NoteBookScreenVM
 import com.xapps.notes.app.presentation.note_view_screen.NoteViewScreen
+import com.xapps.notes.app.presentation.note_view_screen.NoteViewScreenVM
 import com.xapps.notes.app.presentation.notes_screen.NotesScreen
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
 import com.xapps.notes.ui.theme.AppTheme
 import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 
 class MainActivity : FragmentActivity() {
@@ -68,25 +73,21 @@ private fun NotesApp() {
 
         composable<AddNoteRoute> {
             val args = it.toRoute<AddNoteRoute>()
-            NoteViewScreen(
-                noteBookId = args.noteBookId,
-                noteBookName = args.noteBookName,
+            val addNoteScreenVM = getViewModel<AddNoteScreenVM>(parameters = { parametersOf(args.currentNoteBookId) })
+            AddNoteScreen(
+                addNoteScreenVM = addNoteScreenVM,
                 onBack = {
                     navController.popBackStack()
                 }
             )
         }
 
-        composable<ViewNoteRoute> {
-            val args = it.toRoute<ViewNoteRoute>()
+        composable<NoteViewScreenRoute> {
+            val args = it.toRoute<NoteViewScreenRoute>()
+            val noteViewScreenVM = getViewModel<NoteViewScreenVM>(parameters = { parametersOf(args.noteId) })
+
             NoteViewScreen(
-                noteBookId = args.noteBookId,
-                noteBookName = args.noteBookName,
-                heading = args.heading,
-                content = args.content,
-                dateModified = args.dateModified,
-                timeModified = args.timeModified,
-                noteId = args.noteId,
+                noteViewScreenVM = noteViewScreenVM,
                 onBack = {
                     navController.popBackStack()
                 }
@@ -126,55 +127,25 @@ private fun NotesApp() {
                 onBackPress = {
                     navController.navigate(NotesScreenRoute)
                 },
-                onNavigateToViewExistingNote = { noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId ->
-                    navController.navigate(
-                        ViewNoteRoute(
-                            noteBookId = noteBookId,
-                            noteBookName = noteBookName,
-                            heading = heading,
-                            content = content,
-                            dateModified = dateModified,
-                            timeModified = timeModified,
-                            noteId = noteId
-                        )
-                    ) {
-                        launchSingleTop = true
-                    }
-                },
+                navController = navController,
             )
         }
     }
 }
 
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun NotesScreenRoute(
     sharedViewModel: SharedViewModel,
-    navController: NavController
+    navController: NavHostController
 ) {
     NotesScreen(
         sharedViewModel = sharedViewModel,
-        onNavigateToAddNewNote = { noteBookId, noteBookName ->
+        navController = navController,
+        onNavigateToAddNewNote = { noteBookId ->
             navController.navigate(
                 AddNoteRoute(
-                    noteBookId = noteBookId,
-                    noteBookName = noteBookName
-                )
-            ) {
-                launchSingleTop = true
-            }
-        },
-        onNavigateToViewExistingNote = { noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId ->
-            navController.navigate(
-                ViewNoteRoute(
-                    noteBookId = noteBookId,
-                    noteBookName = noteBookName,
-                    heading = heading,
-                    content = content,
-                    dateModified = dateModified,
-                    timeModified = timeModified,
-                    noteId = noteId
+                    currentNoteBookId = noteBookId,
                 )
             ) {
                 launchSingleTop = true
@@ -189,30 +160,29 @@ private fun NotesScreenRoute(
 }
 
 
-@kotlinx.serialization.Serializable
+@Serializable
 object NotesScreenRoute
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class AddNoteRoute(
-    val noteBookId: String,
-    val noteBookName: String
+    val currentNoteBookId: String
 )
 
-@kotlinx.serialization.Serializable
-data class ViewNoteRoute(
-    val noteBookId: String,
-    val noteBookName: String,
-    val heading: String,
-    val content: String,
-    val dateModified: String,
-    val timeModified: String,
+@Serializable
+data class NoteViewScreenRoute(
+//    val noteBookId: String,
+//    val noteBookName: String,
+//    val heading: String,
+//    val content: String,
+//    val dateModified: String,
+//    val timeModified: String,
     val noteId: String
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 object NoteBooksRoute
 
-@kotlinx.serialization.Serializable
+@Serializable
 object AuthenticationRoute
 
 @Serializable

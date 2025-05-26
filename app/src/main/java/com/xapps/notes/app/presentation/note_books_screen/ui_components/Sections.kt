@@ -97,7 +97,7 @@ fun MyNoteBooksSection(
         val noteBook = remember { noteBookList[0] }
         // card item1
         NoteCardItem(
-            text = noteBook.title,
+            text = noteBook.noteBookTitle,
             icon = Icons.AutoMirrored.Filled.StickyNote2,
             iconColor = noteBook.color,
             value = notesPerNotebook[noteBook.noteBookId] ?: 0,
@@ -115,7 +115,7 @@ fun MyNoteBooksSection(
             // card item 1
             noteBookList.forEachIndexed { index, noteBook ->
                 NoteCardItem(
-                    text = noteBook.title,
+                    text = noteBook.noteBookTitle,
                     icon = Icons.AutoMirrored.Filled.StickyNote2,
                     iconColor = noteBook.color,
                     value = notesPerNotebook[noteBook.noteBookId] ?: 0,

@@ -13,6 +13,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.xapps.notes.app.domain.state.NotesScreenStateStore
 import com.xapps.notes.app.presentation.notes_screen.SharedIntent
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
@@ -25,16 +27,8 @@ import kotlinx.coroutines.withContext
 fun LockedNotesScreen(
     modifier: Modifier = Modifier,
     sharedViewModel: SharedViewModel,
-    onBackPress: () -> Unit,
-    onNavigateToViewExistingNote: (
-        String,
-        String,
-        String,
-        String,
-        String,
-        String,
-        String
-    ) -> Unit
+    navController: NavHostController,
+    onBackPress: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val sharedUiState by NotesScreenStateStore.state.collectAsStateWithLifecycle()
@@ -115,11 +109,11 @@ fun LockedNotesScreen(
         ) {
             LockedNotesBody(
                 lockedNotes = lockedNotes,
+                navController = navController,
                 checkBoxIsActive = checkBoxIsActive,
                 handleCheckedChange = ::handleCheckedChange,
                 isNoteChecked = { noteId -> isNoteChecked(noteId) },
-                checkedNotesIds = checkedNotesIds,
-                onNavigateToViewExistingNote = onNavigateToViewExistingNote
+                checkedNotesIds = checkedNotesIds
             )
         }
     }

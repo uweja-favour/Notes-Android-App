@@ -3,7 +3,9 @@ package com.xapps.notes.app.presentation.notes_screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +33,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.navigation.NavHostController
 import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
 import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.presentation.notes_screen.ui_components.NotesScreenBody
@@ -38,6 +42,7 @@ import com.xapps.notes.app.presentation.notes_screen.ui_components.Header
 import com.xapps.notes.app.presentation.shared_ui_components.LoadingScreen
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
 import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_NAME
+import com.xapps.notes.app.presentation.util.onNavigateToNoteViewScreen
 import com.xapps.notes.ui.theme.appSurfaceColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,10 +58,11 @@ import java.util.Locale
 fun NotesScreen(
     modifier: Modifier = Modifier,
     sharedViewModel: SharedViewModel,
-    onNavigateToAddNewNote: (String, String) -> Unit,
-    onNavigateToViewExistingNote: (String, String, String, String, String, String, String) -> Unit,
+    navController: NavHostController,
+    onNavigateToAddNewNote: (String) -> Unit,
     onNavigateToNoteBooksScreen: () -> Unit
 ) {
+
     val uiState by sharedViewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val totalNumberOfNotes by sharedViewModel.totalNoOfUnlockedAndAvailableNotes.collectAsStateWithLifecycle(initialValue = 0)
@@ -244,27 +250,29 @@ fun NotesScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    modifier = Modifier
-                        .padding(
-                            end = Dimens.spacingSmall,
-                            bottom = Dimens.spacingSmall
-                        ),
-                    onClick = {
-                        onNavigateToAddNewNote(
-                            if (uiState.currentNoteBook.noteBookId == "100") "0" else uiState.currentNoteBook.noteBookId,
-                            if (uiState.currentNoteBook.title == ALL_NOTES) DEFAULT_NOTE_BOOK_NAME else uiState.currentNoteBook.title
+                if (uiState.currentNoteBook.noteBookId != RECENTLY_DELETED_NOTEBOOK_ID) {
+                    FloatingActionButton(
+                        modifier = Modifier
+                            .padding(
+                                end = Dimens.spacingSmall,
+                                bottom = Dimens.spacingSmall
+                            ),
+                        onClick = {
+                            onNavigateToAddNewNote(
+                                if (uiState.currentNoteBook.noteBookId == "100") "0" else uiState.currentNoteBook.noteBookId,
+//                            if (uiState.currentNoteBook.noteBookTitle == ALL_NOTES) DEFAULT_NOTE_BOOK_NAME else uiState.currentNoteBook.noteBookTitle
+                            )
+                        },
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(Dimens.spacingExtraSmall),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add new note",
+                            modifier = Modifier.size(Dimens.heightButton)
                         )
-                    },
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(Dimens.spacingExtraSmall),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add new note",
-                        modifier = Modifier.size(Dimens.heightButton)
-                    )
+                    }
                 }
             }
         ) { innerPadding ->
@@ -272,49 +280,50 @@ fun NotesScreen(
                 color = appSurfaceColor
             ) {
                 Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .padding(innerPadding) // respect FAB padding
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Header(
-                        modifier = Modifier
-                            .padding(bottom = Dimens.spacingSmall),
-                        noteBooks = uiState.noteBooks,
-                        totalNumberOfNotes = totalNumberOfNotes,
-                        selectedNoteBook = uiState.currentNoteBook,
-                        onClick = { scope.launch { dispatch(it) } },
-                        navigateToNoteBooksScreen = onNavigateToNoteBooksScreen
-                    )
-                    NotesScreenBody(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(
-                                start = Dimens.spacingMedium,
-                                end = Dimens.spacingMedium
-                            ),
-                        notesScreenEditModeIsActive = uiState.notesScreenEditMode,
-                        displayedNotes = displayedNotes,
-                        onClickNote = {
-                            onNavigateToViewExistingNote(
-                                it.noteBookId,
-                                it.noteBookName,
-                                it.heading,
-                                it.content,
-                                it.dateModified,
-                                it.timeModified,
-                                it.noteId
-                            )
-                        },
-                        toggleNotesScreenEditMode = {
-                            scope.launch {
-                                dispatch(
-                                    SharedIntent.OnToggleNotesScreenEditMode(true)
-                                )
-                            }
-                        },
-                        checkedNotesIds = checkedNotesIds,
-                        handleCheckedChange = ::handleCheckedChange
-                    )
+                    Column(
+                        modifier = modifier
+                            .fillMaxHeight()
+                            .padding(innerPadding)
+                            .fillMaxWidth(.95f)
+                            .align(Alignment.CenterHorizontally),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Header(
+                            modifier = Modifier
+                                .padding(bottom = Dimens.spacingSmall),
+                            noteBooks = uiState.noteBooks,
+                            totalNumberOfNotes = totalNumberOfNotes,
+                            selectedNoteBook = uiState.currentNoteBook,
+                            onClick = { scope.launch { dispatch(it) } },
+                            navigateToNoteBooksScreen = onNavigateToNoteBooksScreen
+                        )
+                        NotesScreenBody(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    start = Dimens.spacingMedium,
+                                    end = Dimens.spacingMedium
+                                ),
+                            notesScreenEditModeIsActive = uiState.notesScreenEditMode,
+                            displayedNotes = displayedNotes,
+                            onClickNote = {
+                                onNavigateToNoteViewScreen(note = it, navController = navController)
+                            },
+                            toggleNotesScreenEditMode = {
+                                scope.launch {
+                                    dispatch(
+                                        SharedIntent.OnToggleNotesScreenEditMode(true)
+                                    )
+                                }
+                            },
+                            checkedNotesIds = checkedNotesIds,
+                            handleCheckedChange = ::handleCheckedChange
+                        )
+                    }
                 }
             }
 

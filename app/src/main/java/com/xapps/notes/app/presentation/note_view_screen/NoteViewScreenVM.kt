@@ -1,9 +1,8 @@
 package com.xapps.notes.app.presentation.note_view_screen
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.xapps.notes.app.Logger.logError
 import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
 import com.xapps.notes.app.domain.state.generateUniqueId
@@ -12,7 +11,11 @@ import com.xapps.notes.app.presentation.util.EventController
 import com.xapps.notes.app.presentation.util.EventType
 import com.xapps.notes.app.presentation.util.getCurrentDateTime
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class NoteViewState(
     val noteBookName: String = "",
@@ -22,9 +25,51 @@ data class NoteViewState(
     val header: String = ""
 )
 
-class NoteViewVM(
-    private val repo: NotesScreenRepo
+
+data class NoteViewScreenState(
+    val heading: String = "",
+    val content: String = "",
+    val dateModified: String = "",
+    val timeModified: String = "",
+    val noteId: String = "",
+    val noteBookId: String = "",
+    val noteBookName: String = "",
+    val isLocked: Boolean = false
+)
+
+class NoteViewScreenVM(
+    private val repo: NotesScreenRepo,
+    private val noteId: String
 ) : ViewModel() {
+
+    private val _state = MutableStateFlow(NoteViewScreenState())
+    val state = _state.asStateFlow()
+
+    init {
+        getNoteForId()
+    }
+
+    private fun getNoteForId() {
+        viewModelScope.launch {
+            val noteList = repo.retrieveNotes()
+            val note = noteList.find { it.noteId == noteId }
+            logError("$note")
+            if (note != null) {
+                _state.update { it.copy(
+                    heading = note.heading,
+                    content = note.content,
+                    dateModified = note.dateModified,
+                    timeModified = note.timeModified,
+                    noteId = note.noteId,
+                    noteBookId = note.noteBookId,
+                    noteBookName = note.noteBookName,
+                    isLocked = note.isLocked
+                ) }
+            } else {
+                logError("ERROR IN NoteViewScreenVM")
+            }
+        }
+    }
 
     fun dispatch(intent: NoteViewEvent) {
         handleIntent(intent)
@@ -35,14 +80,13 @@ class NoteViewVM(
             is NoteViewEvent.OnSaveNote -> onSaveNote(
                 heading = intent.noteHeading,
                 content = intent.noteContent,
-                currentNoteBookId = intent.currentNoteBookId,
-                currentNoteBookName = intent.currentBookName,
-                noteId = intent.noteId
+                currentNoteBookId = state.value.noteBookId,
+                currentNoteBookName = state.value.noteBookName,
+                noteId = state.value.noteId
             )
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun onSaveNote(
         heading: String,
         content: String,
@@ -84,9 +128,6 @@ class NoteViewVM(
 sealed class NoteViewEvent {
     data class OnSaveNote(
         val noteHeading: String,
-        val noteContent: String,
-        val currentNoteBookId: String,
-        val currentBookName: String,
-        val noteId: String?
+        val noteContent: String
     ) : NoteViewEvent()
 }

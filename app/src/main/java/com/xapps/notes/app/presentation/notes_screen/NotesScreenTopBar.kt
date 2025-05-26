@@ -55,7 +55,7 @@ fun NotesScreenTopBar(
         )
     } else {
         DefaultNotesScreenTopBar(
-            noOfCheckedNotes = noOfCheckedNotes,
+//            noOfCheckedNotes = noOfCheckedNotes,
             isNotesSortedAlphabetically = isNotesSortedAlphabetically,
             onSortNotesAlphabetically = onSortNotesAlphabetically,
             onSearchClick = onSearchClick,
@@ -145,7 +145,7 @@ private fun NotesScreenEditModeTopBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DefaultNotesScreenTopBar(
-    noOfCheckedNotes: Int,
+//    noOfCheckedNotes: Int,
     isNotesSortedAlphabetically: Boolean,
     onSortNotesAlphabetically: (Boolean) -> Unit,
     onSearchClick: () -> Unit,
@@ -194,6 +194,7 @@ private fun DefaultNotesScreenTopBar(
                 },
                 onAboutAppClick = {
                     onAboutAppClick()
+                    optionsDropDownMenuVisibility = false
                 },
                 onSortAlphabetically = {
                     onSortNotesAlphabetically(true)
