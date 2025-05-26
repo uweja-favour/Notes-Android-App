@@ -65,10 +65,9 @@ fun LockedNotesBody(
                                                 !isNoteChecked(note.noteId)
                                             )
                                         }
-//                                            noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId
                                         else {
                                             try {
-                                                onNavigateToNoteViewScreen(note, navController = navController)
+                                                navController.onNavigateToNoteViewScreen(note.noteId)
                                             } catch (e: Exception) {
                                                 toastThis(msg = "Navigation failed: ${e.message}", context)
                                             }

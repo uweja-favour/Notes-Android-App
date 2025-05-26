@@ -73,6 +73,13 @@ fun AddNoteScreen(
     ) { event ->
         when (event.eventType) {
             EventType.SAVE_NOTE_SUCCESSFULLY -> {
+                actionList = listOf(
+                    Action(
+                        name = Save,
+                        imageVector = Icons.Default.Check,
+                        isEnabled = false
+                    )
+                )
                 Toast.makeText(context, SAVED, Toast.LENGTH_SHORT).show()
             }
             EventType.SAVE_NOTE_FAILURE -> {

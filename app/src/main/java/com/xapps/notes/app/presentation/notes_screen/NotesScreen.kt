@@ -36,13 +36,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.navigation.NavHostController
 import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
+import com.xapps.notes.app.domain.state.DEFAULT_NOTEBOOK_ID
 import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.presentation.notes_screen.ui_components.NotesScreenBody
 import com.xapps.notes.app.presentation.notes_screen.ui_components.Header
 import com.xapps.notes.app.presentation.shared_ui_components.LoadingScreen
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
 import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_NAME
+import com.xapps.notes.app.presentation.util.onNavigateToAddNoteScreen
 import com.xapps.notes.app.presentation.util.onNavigateToNoteViewScreen
+import com.xapps.notes.app.presentation.util.onNavigateToNotebookScreen
 import com.xapps.notes.ui.theme.appSurfaceColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,8 +62,8 @@ fun NotesScreen(
     modifier: Modifier = Modifier,
     sharedViewModel: SharedViewModel,
     navController: NavHostController,
-    onNavigateToAddNewNote: (String) -> Unit,
-    onNavigateToNoteBooksScreen: () -> Unit
+//    onNavigateToAddNewNote: (String) -> Unit,
+//    onNavigateToNoteBooksScreen: () -> Unit
 ) {
 
     val uiState by sharedViewModel.state.collectAsStateWithLifecycle()
@@ -258,9 +261,8 @@ fun NotesScreen(
                                 bottom = Dimens.spacingSmall
                             ),
                         onClick = {
-                            onNavigateToAddNewNote(
-                                if (uiState.currentNoteBook.noteBookId == "100") "0" else uiState.currentNoteBook.noteBookId,
-//                            if (uiState.currentNoteBook.noteBookTitle == ALL_NOTES) DEFAULT_NOTE_BOOK_NAME else uiState.currentNoteBook.noteBookTitle
+                            navController.onNavigateToAddNoteScreen(
+                                currentNotebookId = if (uiState.currentNoteBook.noteBookId == ALL_NOTEBOOK_ID) DEFAULT_NOTEBOOK_ID else uiState.currentNoteBook.noteBookId
                             )
                         },
                         shape = CircleShape,
@@ -299,7 +301,9 @@ fun NotesScreen(
                             totalNumberOfNotes = totalNumberOfNotes,
                             selectedNoteBook = uiState.currentNoteBook,
                             onClick = { scope.launch { dispatch(it) } },
-                            navigateToNoteBooksScreen = onNavigateToNoteBooksScreen
+                            navigateToNoteBooksScreen = {
+                                navController.onNavigateToNotebookScreen()
+                            }
                         )
                         NotesScreenBody(
                             modifier = Modifier
@@ -311,7 +315,7 @@ fun NotesScreen(
                             notesScreenEditModeIsActive = uiState.notesScreenEditMode,
                             displayedNotes = displayedNotes,
                             onClickNote = {
-                                onNavigateToNoteViewScreen(note = it, navController = navController)
+                                navController.onNavigateToNoteViewScreen(noteId = it.noteId)
                             },
                             toggleNotesScreenEditMode = {
                                 scope.launch {
@@ -340,6 +344,9 @@ fun NotesScreen(
                     searchQuery = searchQuery,
                     updateSearchQuery = {
                         searchQuery = it
+                    },
+                    onNavigateToViewNote = { noteId: String ->
+                        navController.onNavigateToNoteViewScreen(noteId)
                     }
                 )
             }

@@ -71,9 +71,9 @@ private fun NotesApp() {
             )
         }
 
-        composable<AddNoteRoute> {
-            val args = it.toRoute<AddNoteRoute>()
-            val addNoteScreenVM = getViewModel<AddNoteScreenVM>(parameters = { parametersOf(args.currentNoteBookId) })
+        composable<AddNoteScreenRoute> {
+            val args = it.toRoute<AddNoteScreenRoute>()
+            val addNoteScreenVM = getViewModel<AddNoteScreenVM>(parameters = { parametersOf(Uri.decode(args.currentNotebookId)) })
             AddNoteScreen(
                 addNoteScreenVM = addNoteScreenVM,
                 onBack = {
@@ -84,7 +84,7 @@ private fun NotesApp() {
 
         composable<NoteViewScreenRoute> {
             val args = it.toRoute<NoteViewScreenRoute>()
-            val noteViewScreenVM = getViewModel<NoteViewScreenVM>(parameters = { parametersOf(args.noteId) })
+            val noteViewScreenVM = getViewModel<NoteViewScreenVM>(parameters = { parametersOf(Uri.decode(args.noteId)) })
 
             NoteViewScreen(
                 noteViewScreenVM = noteViewScreenVM,
@@ -141,21 +141,7 @@ private fun NotesScreenRoute(
 ) {
     NotesScreen(
         sharedViewModel = sharedViewModel,
-        navController = navController,
-        onNavigateToAddNewNote = { noteBookId ->
-            navController.navigate(
-                AddNoteRoute(
-                    currentNoteBookId = noteBookId,
-                )
-            ) {
-                launchSingleTop = true
-            }
-        },
-        onNavigateToNoteBooksScreen = {
-            navController.navigate(NoteBooksRoute) {
-                launchSingleTop = true
-            }
-        }
+        navController = navController
     )
 }
 
@@ -164,18 +150,12 @@ private fun NotesScreenRoute(
 object NotesScreenRoute
 
 @Serializable
-data class AddNoteRoute(
-    val currentNoteBookId: String
+data class AddNoteScreenRoute(
+    val currentNotebookId: String
 )
 
 @Serializable
 data class NoteViewScreenRoute(
-//    val noteBookId: String,
-//    val noteBookName: String,
-//    val heading: String,
-//    val content: String,
-//    val dateModified: String,
-//    val timeModified: String,
     val noteId: String
 )
 

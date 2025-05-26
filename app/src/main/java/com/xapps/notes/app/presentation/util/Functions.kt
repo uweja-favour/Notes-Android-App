@@ -7,8 +7,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavHostController
+import com.xapps.notes.AddNoteScreenRoute
+import com.xapps.notes.NoteBooksRoute
 import com.xapps.notes.NoteViewScreenRoute
-import com.xapps.notes.app.data.notes_screen.local.Note
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -29,19 +30,32 @@ fun Modifier.onTap(action: () -> Unit): Modifier = pointerInput(Unit) {
     detectTapGestures(onTap = { action() })
 }
 
-fun onNavigateToNoteViewScreen(note: Note, navController: NavHostController) {
-    note.apply {
-        navController.navigate(
-            NoteViewScreenRoute(
-                noteId = noteId
-            )
-        ) {
-            launchSingleTop = true
-        }
-    }
+fun toastThis(msg: String, context: Context, shouldBeLong: Boolean = false) {
+    Toast.makeText(context, msg, if (shouldBeLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
 }
 
 
-fun toastThis(msg: String, context: Context, shouldBeLong: Boolean = false) {
-    Toast.makeText(context, msg, if (shouldBeLong) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+// FOR NAVIGATION...
+fun NavHostController.onNavigateToNoteViewScreen(noteId: String) {
+    this.navigate(
+        NoteViewScreenRoute(
+            noteId = Uri.encode(noteId)
+        )
+    ) {
+        launchSingleTop = true
+    }
+}
+
+fun NavHostController.onNavigateToAddNoteScreen(currentNotebookId: String) {
+    this.navigate(
+        AddNoteScreenRoute(
+            currentNotebookId = Uri.encode(currentNotebookId),
+        )
+    ) {
+        launchSingleTop = true
+    }
+}
+
+fun NavHostController.onNavigateToNotebookScreen() {
+    this.navigate(NoteBooksRoute) { launchSingleTop = true }
 }
