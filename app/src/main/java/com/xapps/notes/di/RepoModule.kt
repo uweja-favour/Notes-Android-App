@@ -1,26 +1,34 @@
 package com.xapps.notes.di
 
 import android.content.Context
-import com.xapps.notes.app.data.notes_screen.NotesScreenRepoImpl
-import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
-@Module
-@InstallIn(SingletonComponent::class)
-object RepoModule {
-
-    @Provides
-    @Singleton
-    fun provideNotesScreenRepo(
-        @ApplicationContext context: Context
-    ): NotesScreenRepo {
-        return NotesScreenRepoImpl(
-            context = context
-        )
-    }
-}
+//@Module
+//@InstallIn(SingletonComponent::class)
+//object RepoModule {
+//
+//    @Provides
+//    @Singleton
+//    fun provideNotesScreenRepo(
+//        @ApplicationContext context: Context
+//    ): NotesScreenRepo {
+//        return NotesScreenRepoImpl(
+//            context = context
+//        )
+//    }
+//
+//    @Provides
+//    @Singleton
+//    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
+//        Room.databaseBuilder(context, AppDatabase::class.java, appDatabaseName)
+//            .fallbackToDestructiveMigration()
+//            .build()
+//
+//
+//    @Provides
+//    @Singleton
+//    fun providesNoteDao(appDatabase: AppDatabase) = appDatabase.getNoteDao()
+//
+//    @Provides
+//    @Singleton
+//    fun providesNoteBookDao(appDatabase: AppDatabase) = appDatabase.getNoteBookDao()
+//}

@@ -27,18 +27,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xapps.notes.app.presentation.util.Constants.SAVED
 import com.xapps.notes.app.presentation.util.EventController
 import com.xapps.notes.app.presentation.util.EventType
 import com.xapps.notes.app.presentation.util.ObserveAsEvent
+import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -51,8 +52,9 @@ fun NoteViewScreen(
     timeModified: String = "",
     noteId: String? = null,
     onBack: () -> Unit,
-    viewModel: NoteViewVM = hiltViewModel<NoteViewVM>()
+    viewModel: NoteViewVM = koinViewModel()
 ) {
+
     var title by remember { mutableStateOf(heading) }
     var body by remember { mutableStateOf(content) }
     val context = LocalContext.current
@@ -144,6 +146,7 @@ fun NoteViewScreen(
                 date = dateModified,
                 time = timeModified,
                 noteBookName = noteBookName,
+                noteContent = body,
                 onBackClick = onBack,
                 onSaveNote = {
                     dispatch(NoteViewEvent.OnSaveNote(
@@ -161,7 +164,7 @@ fun NoteViewScreen(
             modifier = Modifier
                 .padding(innerPadding)
         ) {
-            Body(
+            NoteViewScreen(
                 heading = title,
                 content = body,
                 onHeadingChange = { newTitle ->
@@ -171,7 +174,8 @@ fun NoteViewScreen(
                 onContentChange = { newContent ->
                     body = newContent
                     actionRefresh()
-                }
+                },
+                onBack = { onBack() }
             )
         }
     }
@@ -185,12 +189,17 @@ data class Action(
 )
 
 @Composable
-fun Body(
+fun NoteViewScreen(
     heading: String,
     content: String,
     onHeadingChange: (String) -> Unit,
-    onContentChange: (String) -> Unit
+    onContentChange: (String) -> Unit,
+    onBack: () -> Unit
 ) {
+
+    BackHandler(enabled = true) {
+        onBack()
+    }
     var isHeaderFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     var contentFieldValue by remember {
@@ -225,9 +234,13 @@ fun Body(
                 maxLines = 1,
                 onValueChange = { onHeadingChange(it) },
                 textStyle = TextStyle(
-                    color = if (heading.isEmpty() && !isHeaderFocused) Color.Gray else Color.Black,
+                    color = if (heading.isEmpty() && !isHeaderFocused)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    else
+                        MaterialTheme.colorScheme.onSurface,
                     fontSize = MaterialTheme.typography.headlineMedium.fontSize
                 ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .padding(16.dp)
                     .onFocusChanged { focusState ->
@@ -238,7 +251,7 @@ fun Body(
                     Text(
                         text = "Heading",
                         style = TextStyle(
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             fontSize = MaterialTheme.typography.headlineMedium.fontSize
                         )
                     )
@@ -251,14 +264,15 @@ fun Body(
         item {
             BasicTextField(
                 value = contentFieldValue,
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                ),
                 onValueChange = {
                     contentFieldValue = it
                     onContentChange(it.text)
                 },
-                textStyle = TextStyle(
-                    color = Color.Black,
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)

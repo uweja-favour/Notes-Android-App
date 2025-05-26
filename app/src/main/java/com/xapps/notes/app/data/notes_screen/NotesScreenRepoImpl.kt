@@ -4,9 +4,9 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.xapps.notes.app.Logger
+import com.xapps.notes.app.data.notes_screen.local.Note
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
-import com.xapps.notes.app.domain.state.Note
-import com.xapps.notes.app.domain.state.NoteBook
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -15,12 +15,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 const val NOTES_LIST = "notes_list"
 const val NOTE_BOOKS_LIST = "note_books_list"
 
-class NotesScreenRepoImpl @Inject constructor(
+class NotesScreenRepoImpl(
     private val context: Context
 ) : NotesScreenRepo {
     private val gson = Gson()

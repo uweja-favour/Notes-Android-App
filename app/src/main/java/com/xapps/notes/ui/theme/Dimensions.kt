@@ -20,6 +20,8 @@ object Dimens {
     val textSubtitle = 16.sp
     val textTitle = 20.sp
     val textHeadline = 24.sp
+    val text32Sp = 32.sp
+    val text36Sp = 36.sp
 
     // Corner Radius
     val radiusSmall = 8.dp

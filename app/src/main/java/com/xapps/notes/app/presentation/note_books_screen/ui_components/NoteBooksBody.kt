@@ -1,23 +1,32 @@
 package com.xapps.notes.app.presentation.note_books_screen.ui_components
 
+import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import com.xapps.notes.app.domain.state.NoteBook
-import com.xapps.notes.app.presentation.notes_screen.NotesScreenIntent
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
+import com.xapps.notes.app.presentation.notes_screen.SharedIntent
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES_BOOK_ID
 import com.xapps.notes.ui.theme.Dimens
+import kotlinx.coroutines.launch
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun NoteBooksBody(
     modifier: Modifier = Modifier,
@@ -31,60 +40,72 @@ fun NoteBooksBody(
     checkedNoteBookIds: SnapshotStateSet<String>,
     handleCheckedChange: (String, Boolean) -> Unit,
     toggleCheckboxActiveState: () -> Unit,
-    navigateToNotesScreen: (String) -> Unit
+    navigateToNotesScreen: (String) -> Unit,
+    onLockedNotesClick: () -> Unit,
+    onBackPress: () -> Unit
 ) {
-    val dispatch = remember { { intent: NotesScreenIntent -> sharedViewModel.dispatch(intent) } }
+    BackHandler(enabled = checkBoxActiveState, onBack = onBackPress)
+
+    val scope = rememberCoroutineScope()
+    val dispatch = remember<suspend (SharedIntent) -> Unit> { { sharedViewModel.dispatch(it) } }
     var showBottomSheet by remember { mutableStateOf(false) }
 
     val sheetHeight = (LocalConfiguration.current.screenHeightDp / 2.5f).dp
+    val scrollState = rememberScrollState()
+    val overscrollEffect = rememberOverscrollEffect() // <-- bounce effect
 
-    LazyColumn(modifier = modifier) {
-        item {
-            AllNotesSection(
-                checkBoxActiveState = checkBoxActiveState,
-                noteCount = noOfAllNotes,
-                onClick = { if (!checkBoxActiveState) navigateToNotesScreen(ALL_NOTES_BOOK_ID) }
-            )
+    Column(
+        modifier = modifier
+            .verticalScroll(scrollState)
+            .overscroll(overscrollEffect)
+    ) {
+        AllNotesSection(
+            checkBoxActiveState = checkBoxActiveState,
+            noteCount = noOfAllNotes,
+            onClick = { if (!checkBoxActiveState) navigateToNotesScreen(ALL_NOTES_BOOK_ID) }
+        )
 
-            Spacer(modifier = Modifier.height(Dimens.spacingExtraSmall))
+        Spacer(modifier = Modifier.height(Dimens.spacingSmall))
 
-            MyNoteBooksHeader(
-                checkBoxActiveState = checkBoxActiveState,
-                onAddNewClick = { showBottomSheet = true }
-            )
+        MyNoteBooksHeader(
+            checkBoxActiveState = checkBoxActiveState,
+            onAddNewClick = { showBottomSheet = true }
+        )
+        Spacer(modifier = Modifier.height(Dimens.spacingSmall))
+
+
+
+        MyNoteBooksSection(
+            noteBookList = noteBookList,
+            checkBoxActiveState = checkBoxActiveState,
+            checkedNoteBookIds = checkedNoteBookIds,
+            notesPerNotebook = notesPerNotebook,
+            onNavigate = navigateToNotesScreen,
+            onCheckChanged = handleCheckedChange,
+            toggleCheckMode = toggleCheckboxActiveState
+        )
+
+
+
+        if (noteBookList.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(Dimens.spacingSmall))
         }
-
-        item {
-            MyNoteBooksSection(
-                noteBookList = noteBookList,
-                checkBoxActiveState = checkBoxActiveState,
-                checkedNoteBookIds = checkedNoteBookIds,
-                notesPerNotebook = notesPerNotebook,
-                onNavigate = navigateToNotesScreen,
-                onCheckChanged = handleCheckedChange,
-                toggleCheckMode = toggleCheckboxActiveState
-            )
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(Dimens.spacingMedium))
-
-            OtherNoteBooksSection(
-                checkBoxActiveState = checkBoxActiveState,
-                checkedNoteBookIds = checkedNoteBookIds,
-                defaultNoteCount = noOfDefaultNotes,
-                deletedNoteCount = noOfRecentlyDeletedNotes,
-                onNavigate = navigateToNotesScreen,
-                onCheckChanged = handleCheckedChange,
-                toggleCheckMode = toggleCheckboxActiveState
-            )
-        }
+        OtherNoteBooksSection(
+            checkBoxActiveState = checkBoxActiveState,
+            checkedNoteBookIds = checkedNoteBookIds,
+            defaultNoteCount = noOfDefaultNotes,
+            deletedNoteCount = noOfRecentlyDeletedNotes,
+            onNavigate = navigateToNotesScreen,
+            onCheckChanged = handleCheckedChange,
+            toggleCheckMode = toggleCheckboxActiveState,
+            onLockedNotesClick = onLockedNotesClick
+        )
     }
 
-    QuarterScreenBottomSheet(
+    AddNoteBookBottomSheet(
         showSheet = showBottomSheet,
         sheetHeight = sheetHeight,
-        onSave = { name, color -> dispatch(NotesScreenIntent.OnAddNewNoteBook(name, color)) },
+        onSave = { name, color ->  scope.launch{ dispatch(SharedIntent.OnAddNewNoteBook(name, color)) }},
         onDismissRequest = { showBottomSheet = false }
     )
 }

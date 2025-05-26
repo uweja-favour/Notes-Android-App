@@ -2,7 +2,6 @@ package com.xapps.notes.app.presentation.notes_screen.ui_components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -12,19 +11,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.xapps.notes.app.domain.state.Note
-import com.xapps.notes.ui.theme.Dimens
+import com.xapps.notes.app.data.notes_screen.local.Note
 
 @Composable
 fun NoteCard(
     modifier: Modifier = Modifier,
     note: Note,
-    selectedNotesIds: SnapshotStateSet<String>,
+    checkedNotesIds: SnapshotStateSet<String>,
     checkBoxIsActive: Boolean,
     onCheckedChange: (String, Boolean) -> Unit,
 ) {
     val title = note.heading.ifBlank { note.content }
-    val noteCheckedState by rememberUpdatedState(newValue = (note.noteId in selectedNotesIds))
+    val noteCheckedState by rememberUpdatedState(newValue = (note.noteId in checkedNotesIds))
 
     Column(modifier = modifier) {
         // Title and Checkbox Row
@@ -80,12 +78,5 @@ fun NoteCard(
                 enabled = checkBoxIsActive
             )
         }
-
-        Spacer(modifier = Modifier.height(Dimens.spacingSmall))
-
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        )
     }
 }

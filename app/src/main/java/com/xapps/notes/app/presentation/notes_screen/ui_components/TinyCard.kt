@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xapps.notes.R
-import com.xapps.notes.app.domain.state.NoteBook
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
 
 
 @Composable
@@ -51,7 +51,7 @@ fun TinyCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -68,7 +68,7 @@ fun TinyCard(
                         }
                     }
                 }
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             when {
                 displayNoteBooksScreen -> {

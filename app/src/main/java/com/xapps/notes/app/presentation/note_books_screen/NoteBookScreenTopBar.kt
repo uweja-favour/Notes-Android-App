@@ -1,13 +1,9 @@
 package com.xapps.notes.app.presentation.note_books_screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +11,7 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,14 +31,14 @@ import com.xapps.notes.ui.theme.goldenYellow
 @Composable
 fun NoteBookScreenTopBar(
     checkBoxActiveState: Boolean = false,
-    onBackPress: () -> Unit,
+    onNavigateBack: () -> Unit,
     toggleCheckboxActiveState: (Boolean) -> Unit
 ) {
 
     if (checkBoxActiveState) {
         CheckBoxActiveTopBar(toggleCheckboxActiveState)
     } else {
-        DefaultTopBar(onBackPress, toggleCheckboxActiveState)
+        DefaultTopBar(onNavigateBack, toggleCheckboxActiveState)
     }
 }
 
@@ -52,22 +49,6 @@ private fun CheckBoxActiveTopBar(
     onToggleCheckBoxActiveState: (Boolean) -> Unit
 ) {
     TopAppBar(
-//        navigationIcon = {
-//            Row {
-//                Spacer(
-//                    modifier = Modifier
-//                        .padding(start = Dimens.spacingSmall)
-//                )
-//                Text(
-//                    modifier = Modifier
-//                        .onTap { onToggleCheckBoxActiveState(false) },
-//                    text = DONE,
-//                    color = goldenYellow,
-//                    fontWeight = FontWeight.Bold
-//                )
-//            }
-//        },
-
         title = {
             Box(
                 modifier = Modifier
@@ -122,11 +103,7 @@ private fun DefaultTopBar(
             }
         },
         navigationIcon = {
-            Surface (
-                modifier = Modifier
-                    .wrapContentSize(),
-                shape = CircleShape,
-                color = Color.Transparent,
+            IconButton(
                 onClick = onBackPress
             ) {
                 Icon(

@@ -45,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xapps.notes.R
-import com.xapps.notes.app.Logger
 import com.xapps.notes.app.presentation.util.onTap
 import com.xapps.notes.ui.theme.Dimens
 import com.xapps.notes.ui.theme.aestheticHue
@@ -56,13 +55,36 @@ import com.xapps.notes.ui.theme.rosePink
 import com.xapps.notes.ui.theme.skyBlue
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuarterScreenBottomSheet(
+fun EditBottomSheet(
     showSheet: Boolean,
     sheetHeight: Dp = (LocalConfiguration.current.screenHeightDp / 2.5f).dp,
-    title: String? = null,
-    color: Color? = null,
+    title: String,
+    color: Color,
+    onSave: (String, Color) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    val colorList = remember { listOf(goldenYellow, peach, rosePink, skyBlue, lavender, aestheticHue) }
+    NotebookBottomSheet(
+        showSheet = showSheet,
+        sheetHeight = sheetHeight,
+        initialTitle = title,
+        initialColor = color,
+        colorList = colorList,
+        onSave = onSave,
+        onDismissRequest = onDismissRequest
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotebookBottomSheet(
+    showSheet: Boolean,
+    sheetHeight: Dp,
+    initialTitle: String,
+    initialColor: Color,
+    colorList: List<Color>,
     onSave: (String, Color) -> Unit,
     onDismissRequest: () -> Unit
 ) {
@@ -70,73 +92,32 @@ fun QuarterScreenBottomSheet(
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
-
-    val colorList = listOf(
-        goldenYellow,
-        peach,
-        rosePink,
-        skyBlue,
-        lavender,
-        aestheticHue
-    )
-    var noteBookName by remember { mutableStateOf(value = title ?: "") }
-    var contentFieldValue by remember {
+    var notebookName by remember { mutableStateOf(initialTitle) }
+    var fieldValue by remember {
         mutableStateOf(
             TextFieldValue(
-                text = noteBookName,
-                selection = TextRange(noteBookName.length)
+                text = initialTitle,
+                selection = TextRange(initialTitle.length)
             )
         )
     }
-    var chosenColor by remember { mutableStateOf(value = color ?: colorList[0]) }
-    fun setChosenColor(color: Color) {
-        chosenColor = color
+    var chosenColor by remember { mutableStateOf(initialColor) }
+
+    LaunchedEffect(showSheet) {
+        if (showSheet) sheetState.expand()
     }
 
-    LaunchedEffect(title, color) {
-        noteBookName = title ?: ""
-        if (noteBookName.isNotBlank()) {
-            contentFieldValue = TextFieldValue(
-                text = noteBookName,
-                selection = TextRange(noteBookName.length)
-            )
-        }
-        chosenColor = color ?: colorList[0]
-    }
-
-    suspend fun hideSheet() {
-        noteBookName = ""
-        chosenColor = colorList[0]
-        sheetState.hide()
-        onDismissRequest()
-        Logger.logData("Hiding bottom sheet")
-    }
-
-    suspend fun expandSheet() {
-        Logger.logData("Expanding bottom sheet")
-        sheetState.expand()
-    }
-
-    LaunchedEffect(key1 = showSheet) {
-        Logger.logData("Expanding bottom sheet 1")
-        if (showSheet) {
-            expandSheet()
-        }
-    }
-
-    LaunchedEffect(key1 = sheetState.currentValue) {
+    LaunchedEffect(sheetState.currentValue) {
         if (sheetState.currentValue == SheetValue.Expanded) {
-            Logger.logData("Sheet expanded, requesting focus.")
             focusRequester.requestFocus()
         }
     }
-
 
     if (showSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
             onDismissRequest = {
-                scope.launch { hideSheet() }
+                scope.launch { sheetState.hide(); onDismissRequest() }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -148,6 +129,7 @@ fun QuarterScreenBottomSheet(
                     .padding(horizontal = Dimens.spacingMedium)
                     .padding(bottom = Dimens.spacingMedium)
             ) {
+                // Top Buttons
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -158,7 +140,8 @@ fun QuarterScreenBottomSheet(
                     TextButton(
                         onClick = {
                             scope.launch {
-                                hideSheet()
+                                sheetState.hide()
+                                onDismissRequest()
                             }
                         }
                     ) {
@@ -169,44 +152,47 @@ fun QuarterScreenBottomSheet(
                             color = goldenYellow
                         )
                     }
+
                     Text(
-                        text = stringResource(R.string.new_notebook),
+                        text = stringResource(R.string.edit),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = Dimens.textTitle
                     )
+
                     TextButton(
                         onClick = {
                             scope.launch {
-                                onSave(noteBookName, chosenColor)
-                                hideSheet()
+                                onSave(notebookName.trim(), chosenColor)
+                                sheetState.hide()
                                 onDismissRequest()
                             }
                         },
-                        enabled = noteBookName.isNotBlank()
+                        enabled = notebookName.isNotBlank()
                     ) {
                         Text(
                             text = stringResource(R.string.save),
                             fontWeight = FontWeight.Bold,
                             fontSize = Dimens.textSubtitle,
-                            color = if (noteBookName.isNotBlank()) goldenYellow else Color.LightGray
+                            color = if (notebookName.isNotBlank()) goldenYellow else Color.LightGray
                         )
                     }
                 }
+
+                // TextField
                 TextField(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = Dimens.spacingSmall)
                         .focusRequester(focusRequester)
                         .onFocusChanged {
-                            if (!it.isFocused) return@onFocusChanged
-                            contentFieldValue = contentFieldValue.copy(
-                                selection = TextRange(noteBookName.length)
-                            )
+                            if (it.isFocused) {
+                                fieldValue = fieldValue.copy(selection = TextRange(notebookName.length))
+                            }
                         },
-                    value = contentFieldValue,
+                    value = fieldValue,
                     onValueChange = {
-                        contentFieldValue = it
-                        noteBookName = it.text
+                        fieldValue = it
+                        notebookName = it.text
                     },
                     leadingIcon = {
                         Icon(
@@ -224,14 +210,13 @@ fun QuarterScreenBottomSheet(
                     }
                 )
 
+                // Color Picker
                 Card(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(Dimens.radiusMedium)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .padding(Dimens.spacingSmall)
+                        modifier = Modifier.padding(Dimens.spacingSmall)
                     ) {
                         Text(
                             textAlign = TextAlign.Start,
@@ -245,7 +230,7 @@ fun QuarterScreenBottomSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(Dimens.spacingSmall)
-                                .height(60.dp), // Ensures there's a vertical constraint
+                                .height(60.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -254,17 +239,16 @@ fun QuarterScreenBottomSheet(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
-                                        .onTap { setChosenColor(color) },
+                                        .onTap { chosenColor = color },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     CircleRing(
-                                        modifier = Modifier
-                                            .fillMaxSize(),
+                                        modifier = Modifier.fillMaxSize(),
                                         color = color,
                                         isSelected = chosenColor == color
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp)) // Optional spacing
+                                Spacer(modifier = Modifier.width(8.dp))
                             }
                         }
                     }

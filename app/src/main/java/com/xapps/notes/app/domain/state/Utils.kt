@@ -1,4 +1,4 @@
-package com.xapps.notes.app.domain.state.utils
+package com.xapps.notes.app.domain.state
 
 import java.util.UUID
 

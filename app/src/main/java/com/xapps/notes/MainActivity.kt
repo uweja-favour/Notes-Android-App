@@ -6,33 +6,27 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableIntState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.xapps.notes.app.presentation.notes_screen.NotesScreen
-import com.xapps.notes.app.presentation.to_dos_screen.TodoScreen
-import com.xapps.notes.ui.theme.AppTheme
-import dagger.hilt.android.AndroidEntryPoint
-import androidx.navigation.compose.NavHost
 import androidx.navigation.toRoute
 import com.xapps.notes.app.domain.state.NotesScreenStateStore
+import com.xapps.notes.app.presentation.authentication_screen.AuthenticationScreen
+import com.xapps.notes.app.presentation.locked_notes_screen.LockedNotesScreen
 import com.xapps.notes.app.presentation.note_books_screen.NoteBookScreen
-import kotlinx.serialization.Serializable
 import com.xapps.notes.app.presentation.note_view_screen.NoteViewScreen
+import com.xapps.notes.app.presentation.notes_screen.NotesScreen
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
+import com.xapps.notes.ui.theme.AppTheme
+import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
 
-private const val pageCount: Int = 2
-private var initialPageIndex: MutableIntState = mutableIntStateOf(0)
 
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,26 +37,29 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    fun android.content.Context.findActivity(): ComponentActivity {
+        var context = this
+        while (context is android.content.ContextWrapper) {
+            if (context is ComponentActivity) return context
+            context = context.baseContext
+        }
+        throw IllegalStateException("Context is not an Activity")
+    }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun NotesApp() {
-    val sharedViewModel = hiltViewModel<SharedViewModel>()
-    val pagerState = rememberPagerState(
-        initialPage = initialPageIndex.intValue,
-        pageCount = { pageCount },
-    )
+    val sharedViewModel = koinViewModel<SharedViewModel>()
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = PagerRoute
+        startDestination = LockedNotesRoute
     ) {
-        composable<PagerRoute> {
-            MainContent(
+        composable<NotesScreenRoute> {
+            NotesScreenRoute(
                 sharedViewModel = sharedViewModel,
-                pagerState = pagerState,
                 navController = navController
             )
         }
@@ -97,44 +94,34 @@ private fun NotesApp() {
         composable<NoteBooksRoute> {
             NoteBookScreen(
                 sharedViewModel = sharedViewModel,
-                onBackPress = {
+                onNavigate = {
                     navController.popBackStack()
                 },
                 navigateToNoteBook = { noteBookId: String ->
-                    val noteScreenState = NotesScreenStateStore.state
-                    val newCurrentNoteBook = noteScreenState.value.noteBooks.find { it.noteBookId == noteBookId }
-                    requireNotNull(newCurrentNoteBook) { "newCurrentNoteBook should not be null. FIX: Check if the noteBookId doesn't exist or is 100. noteBookId: $noteBookId"
-                    }
-                    NotesScreenStateStore.update { it.copy(
-                        currentNoteBook = newCurrentNoteBook
-                    ) }
-                    navController.popBackStack() // navigate
+                    NotesScreenStateStore.state.value.noteBooks.firstOrNull { it.noteBookId == noteBookId }?.let { noteBook ->
+                        NotesScreenStateStore.update { it.copy(currentNoteBook = noteBook) }
+                        navController.popBackStack()
+                    } ?: error("Notebook not found. Ensure noteBookId=$noteBookId exists and is not 100.")
+                },
+                onLockedNotesClick = {
+                    navController.navigate(AuthenticationRoute)
                 }
             )
         }
-    }
-}
 
+        composable<AuthenticationRoute> {
+            AuthenticationScreen(
+                onAuthSuccess = {
+                    navController.navigate(LockedNotesRoute)
+                }
+            )
+        }
 
-@Composable
-private fun MainContent(
-    sharedViewModel: SharedViewModel,
-    pagerState: PagerState,
-    navController: NavController
-) {
-    HorizontalPager(pagerState) { page ->
-        when (page) {
-            0 -> NotesScreen(
+        composable<LockedNotesRoute> {
+            LockedNotesScreen(
                 sharedViewModel = sharedViewModel,
-                onNavigateToAddNewNote = { noteBookId, noteBookName ->
-                    navController.navigate(
-                        AddNoteRoute(
-                            noteBookId = noteBookId,
-                            noteBookName = noteBookName
-                        )
-                    ) {
-                        launchSingleTop = true
-                    }
+                onBackPress = {
+                    navController.navigate(NotesScreenRoute)
                 },
                 onNavigateToViewExistingNote = { noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId ->
                     navController.navigate(
@@ -151,28 +138,64 @@ private fun MainContent(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToNoteBooksScreen = {
-                    navController.navigate(NoteBooksRoute) {
-                        launchSingleTop = true
-                    }
-                }
             )
-            1 -> TodoScreen()
         }
     }
 }
 
 
-@Serializable
-object PagerRoute
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun NotesScreenRoute(
+    sharedViewModel: SharedViewModel,
+    navController: NavController
+) {
+    NotesScreen(
+        sharedViewModel = sharedViewModel,
+        onNavigateToAddNewNote = { noteBookId, noteBookName ->
+            navController.navigate(
+                AddNoteRoute(
+                    noteBookId = noteBookId,
+                    noteBookName = noteBookName
+                )
+            ) {
+                launchSingleTop = true
+            }
+        },
+        onNavigateToViewExistingNote = { noteBookId, noteBookName, heading, content, dateModified, timeModified, noteId ->
+            navController.navigate(
+                ViewNoteRoute(
+                    noteBookId = noteBookId,
+                    noteBookName = noteBookName,
+                    heading = heading,
+                    content = content,
+                    dateModified = dateModified,
+                    timeModified = timeModified,
+                    noteId = noteId
+                )
+            ) {
+                launchSingleTop = true
+            }
+        },
+        onNavigateToNoteBooksScreen = {
+            navController.navigate(NoteBooksRoute) {
+                launchSingleTop = true
+            }
+        }
+    )
+}
 
-@Serializable
+
+@kotlinx.serialization.Serializable
+object NotesScreenRoute
+
+@kotlinx.serialization.Serializable
 data class AddNoteRoute(
     val noteBookId: String,
     val noteBookName: String
 )
 
-@Serializable
+@kotlinx.serialization.Serializable
 data class ViewNoteRoute(
     val noteBookId: String,
     val noteBookName: String,
@@ -183,5 +206,11 @@ data class ViewNoteRoute(
     val noteId: String
 )
 
-@Serializable
+@kotlinx.serialization.Serializable
 object NoteBooksRoute
+
+@kotlinx.serialization.Serializable
+object AuthenticationRoute
+
+@Serializable
+object LockedNotesRoute

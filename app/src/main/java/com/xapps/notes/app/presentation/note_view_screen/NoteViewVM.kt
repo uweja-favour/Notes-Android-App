@@ -1,18 +1,18 @@
 package com.xapps.notes.app.presentation.note_view_screen
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.xapps.notes.app.Logger
+import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
-import com.xapps.notes.app.domain.state.Note
-import com.xapps.notes.app.domain.state.utils.generateUniqueId
+import com.xapps.notes.app.domain.state.generateUniqueId
 import com.xapps.notes.app.presentation.util.AnEvent
 import com.xapps.notes.app.presentation.util.EventController
 import com.xapps.notes.app.presentation.util.EventType
 import com.xapps.notes.app.presentation.util.getCurrentDateTime
-import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class NoteViewState(
     val noteBookName: String = "",
@@ -22,8 +22,7 @@ data class NoteViewState(
     val header: String = ""
 )
 
-@HiltViewModel
-class NoteViewVM @Inject constructor(
+class NoteViewVM(
     private val repo: NotesScreenRepo
 ) : ViewModel() {
 
@@ -33,7 +32,7 @@ class NoteViewVM @Inject constructor(
 
     private fun handleIntent(intent: NoteViewEvent) {
         when(intent) {
-            is NoteViewEvent.OnSaveNote -> addNewNote(
+            is NoteViewEvent.OnSaveNote -> onSaveNote(
                 heading = intent.noteHeading,
                 content = intent.noteContent,
                 currentNoteBookId = intent.currentNoteBookId,
@@ -43,14 +42,15 @@ class NoteViewVM @Inject constructor(
         }
     }
 
-    private fun addNewNote(
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun onSaveNote(
         heading: String,
         content: String,
         currentNoteBookId: String,
         currentNoteBookName: String,
         noteId: String? = null
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val dateTime = getCurrentDateTime()
             val newNote = Note(
                 heading = heading,
@@ -62,21 +62,20 @@ class NoteViewVM @Inject constructor(
                 noteId = noteId ?: generateUniqueId() // if the note is just been created generate a unique id
             )
 
-            val success = repo.addNote(newNote)
-            Logger.logData("addNewNote, success is $success")
-            if (success) {
-                EventController.sendEvent(
-                    AnEvent(
-                        eventType = EventType.SAVE_NOTE_SUCCESSFULLY
-                    )
-                )
-            } else {
-                EventController.sendEvent(
-                    AnEvent(
-                        eventType = EventType.SAVE_NOTE_FAILURE
-                    )
-                )
-            }
+           try {
+               repo.addNote(newNote)
+               EventController.sendEvent(
+                   AnEvent(
+                       eventType = EventType.SAVE_NOTE_SUCCESSFULLY
+                   )
+               )
+           } catch (e: Exception) {
+               EventController.sendEvent(
+                   AnEvent(
+                       eventType = EventType.SAVE_NOTE_FAILURE
+                   )
+               )
+           }
         }
     }
 }

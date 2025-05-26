@@ -1,6 +1,7 @@
 package com.xapps.notes.app.domain.state
 
-import androidx.compose.ui.graphics.Color
+import com.xapps.notes.app.data.notes_screen.local.Note
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
 import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK
 import com.xapps.notes.app.presentation.util.Constants.RECENTLY_DELETED
@@ -9,43 +10,33 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+
+const val DEFAULT_NOTEBOOK_ID = "0"
+const val RECENTLY_DELETED_NOTEBOOK_ID = "1"
+const val ALL_NOTEBOOK_ID = "100"
+
+
 val defaultNoteBook = NoteBook(
     title = DEFAULT_NOTE_BOOK,
-    noteBookId = "0"
+    noteBookId = DEFAULT_NOTEBOOK_ID
 )
 
 val recentlyDeletedNoteBook = NoteBook(
    title = RECENTLY_DELETED,
-   noteBookId = "1"
+   noteBookId = RECENTLY_DELETED_NOTEBOOK_ID
 )
 
 val allNoteBook = NoteBook(
     title = ALL_NOTES,
-    noteBookId = "100"
+    noteBookId = ALL_NOTEBOOK_ID
 )
 
 data class NotesScreenState(
+    val notesScreenEditMode: Boolean = false,
     val noteBooks: List<NoteBook> = emptyList(),
     val notes: List<Note> = emptyList(),
     val currentNoteBook: NoteBook = allNoteBook,
-    val isLoading: Boolean = true
-)
-
-data class NoteBook(
-    val noteBookId: String = "0",
-    val title: String = "",
-    val color: Color = Color.Blue
-)
-
-data class Note(
-    val heading: String = "",
-    val content: String = "",
-    val dateModified: String = "",
-    val timeModified: String = "",
-    val noteId: String,
-    val noteBookId: String = "0", // 0 for Default Notebook
-    val noteBookName: String = "",
-    val isLocked: Boolean = false
+    val isLoading: Boolean = false
 )
 
 object NotesScreenStateStore {

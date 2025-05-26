@@ -1,14 +1,9 @@
 package com.xapps.notes.app.presentation.note_books_screen.ui_components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,23 +13,25 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.xapps.notes.R
-import com.xapps.notes.app.domain.state.NoteBook
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
 import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_ID
 import com.xapps.notes.app.presentation.util.Constants.RECENTLY_DELETED_BOOK_ID
 import com.xapps.notes.ui.theme.Dimens
+import com.xapps.notes.ui.theme.appContainerColor
 import com.xapps.notes.ui.theme.goldenYellow
 
 @Composable
@@ -43,14 +40,14 @@ fun AllNotesSection(
     noteCount: Int,
     onClick: () -> Unit
 ) {
-    CardItem2(
+    // card item 2
+    NoteCardItem(
         text = ALL_NOTES,
         icon = Icons.AutoMirrored.Filled.EventNote,
         value = noteCount,
-        checkBoxActiveState = checkBoxActiveState,
+        isCheckboxMode = checkBoxActiveState,
         onClick = onClick
     )
-    Spacer(modifier = Modifier.height(Dimens.spacingExtraSmall))
 }
 
 @Composable
@@ -97,28 +94,33 @@ fun MyNoteBooksSection(
     toggleCheckMode: () -> Unit
 ) {
     if (noteBookList.size == 1) {
-        val noteBook = noteBookList.first()
-        CardItem1(
+        val noteBook = remember { noteBookList[0] }
+        // card item1
+        NoteCardItem(
             text = noteBook.title,
             icon = Icons.AutoMirrored.Filled.StickyNote2,
             iconColor = noteBook.color,
             value = notesPerNotebook[noteBook.noteBookId] ?: 0,
             onClick = { onNavigate(noteBook.noteBookId) },
-            checkBoxActiveState = checkBoxActiveState,
+            isCheckboxMode = checkBoxActiveState,
             onCheckedChange = { onCheckChanged(noteBook.noteBookId, it) },
             toggleCheckboxActiveState = toggleCheckMode,
             isChecked = checkedNoteBookIds.contains(noteBook.noteBookId)
         )
     } else {
-        Card(shape = RoundedCornerShape(Dimens.radiusMedium)) {
+        Card(
+            shape = RoundedCornerShape(Dimens.radiusMedium),
+            colors = CardDefaults.cardColors(appContainerColor)
+        ) {
+            // card item 1
             noteBookList.forEachIndexed { index, noteBook ->
-                CardItem1(
+                NoteCardItem(
                     text = noteBook.title,
                     icon = Icons.AutoMirrored.Filled.StickyNote2,
                     iconColor = noteBook.color,
                     value = notesPerNotebook[noteBook.noteBookId] ?: 0,
                     onClick = { onNavigate(noteBook.noteBookId) },
-                    checkBoxActiveState = checkBoxActiveState,
+                    isCheckboxMode = checkBoxActiveState,
                     onCheckedChange = { onCheckChanged(noteBook.noteBookId, it) },
                     toggleCheckboxActiveState = toggleCheckMode,
                     isChecked = checkedNoteBookIds.contains(noteBook.noteBookId)
@@ -137,31 +139,42 @@ fun OtherNoteBooksSection(
     deletedNoteCount: Int,
     onNavigate: (String) -> Unit,
     onCheckChanged: (String, Boolean) -> Unit,
+    onLockedNotesClick: () -> Unit,
     toggleCheckMode: () -> Unit
 ) {
     val isChecked = checkedNoteBookIds.contains(RECENTLY_DELETED_BOOK_ID)
 
-    Card(shape = RoundedCornerShape(Dimens.radiusMedium)) {
-        RowWithinACard(
-            modifier = Modifier.clickable(enabled = !checkBoxActiveState) {
-                onNavigate(DEFAULT_NOTE_BOOK_ID)
+    Card(
+        shape = RoundedCornerShape(Dimens.radiusMedium),
+        colors = CardDefaults.cardColors(appContainerColor)
+    ) {
+        NoteCardItem(
+            onClick = {
+                if (!checkBoxActiveState) {
+                    onNavigate(DEFAULT_NOTE_BOOK_ID)
+                }
             },
             text = stringResource(R.string.default_notebook),
             value = defaultNoteCount,
             icon = Icons.Default.ContentCopy,
-            checkBoxActiveState = checkBoxActiveState
+            isCheckboxMode = checkBoxActiveState
         )
-        RowWithinACard(
-            modifier = Modifier.clickable(enabled = !checkBoxActiveState) { },
+        NoteCardItem(
+            onClick = {
+                if (!checkBoxActiveState) {
+                    onLockedNotesClick()
+                }
+            },
             text = stringResource(R.string.locked_notes),
             icon = Icons.Default.Lock,
-            checkBoxActiveState = checkBoxActiveState
+            isCheckboxMode = checkBoxActiveState
         )
-        CardItem1(
+        // card item 1
+        NoteCardItem(
             text = stringResource(R.string.recently_deleted),
             value = deletedNoteCount,
             icon = Icons.Default.Delete,
-            checkBoxActiveState = checkBoxActiveState,
+            isCheckboxMode = checkBoxActiveState,
             isChecked = isChecked,
             onClick = { onNavigate(RECENTLY_DELETED_BOOK_ID) },
             onCheckedChange = { onCheckChanged(RECENTLY_DELETED_BOOK_ID, it) },

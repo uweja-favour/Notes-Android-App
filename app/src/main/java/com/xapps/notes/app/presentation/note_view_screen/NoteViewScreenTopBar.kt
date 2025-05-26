@@ -37,6 +37,7 @@ fun NoteViewScreenTopBar(
     modifier: Modifier = Modifier,
     actionList: List<Action>,
     noteBookName: String,
+    noteContent: String,
     date: String = "",
     time: String = "",
     onBackClick: () -> Unit = {},
@@ -107,6 +108,16 @@ fun NoteViewScreenTopBar(
                 } else {
                     "$date, $time"
                 },
+                fontSize = Dimens.textCaption
+            )
+
+            Text(
+                text = " | ",
+                fontSize = Dimens.textCaption
+            )
+
+            Text(
+                text = "${noteContent.replace(" ", "").length}",
                 fontSize = Dimens.textCaption
             )
 

@@ -5,25 +5,29 @@ import androidx.compose.ui.util.fastMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xapps.notes.app.Logger
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
-import com.xapps.notes.app.domain.state.NoteBook
+import com.xapps.notes.app.domain.state.ALL_NOTEBOOK_ID
+import com.xapps.notes.app.domain.state.DEFAULT_NOTEBOOK_ID
 import com.xapps.notes.app.domain.state.NotesScreenState
 import com.xapps.notes.app.domain.state.NotesScreenStateStore
+import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.domain.state.allNoteBook
 import com.xapps.notes.app.domain.state.defaultNoteBook
+import com.xapps.notes.app.domain.state.generateUniqueId
 import com.xapps.notes.app.domain.state.recentlyDeletedNoteBook
-import com.xapps.notes.app.domain.state.utils.generateUniqueId
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.withContext
 
-@HiltViewModel
-class SharedViewModel @Inject constructor(
+
+class SharedViewModel(
     private val repo: NotesScreenRepo
 ) : ViewModel() {
 
@@ -35,48 +39,61 @@ class SharedViewModel @Inject constructor(
         .distinctUntilChanged()
 
     init {
-        initialize()
-        observeUpdates()
+        observeNotesUpdates()
+        observeNoteBooksUpdates()
+        updateState { it.copy(
+            isLoading = false
+        ) }
     }
 
-    private fun initialize() {
-        viewModelScope.launch {
-            val (noteBooks, notes) = repo.retrieveNoteBooks() to repo.retrieveNotes()
-            Logger.logData("first; noteBooks retrieved: $noteBooks")
-            // Ordered notebooks without unnecessary IDs
-            val orderedNoteBooks = buildList {
-                add(allNoteBook)
-                addAll(noteBooks.filterNot { it.noteBookId in listOf("1", "0", "100") })
-                add(defaultNoteBook)
-                add(recentlyDeletedNoteBook)  // Adding 'recentlyDeleted'
-            }
-
-            updateStateIfChanged { current ->
-                val newState = current.copy(
-                    noteBooks = orderedNoteBooks,
-                    notes = notes,
-                    isLoading = false
-                )
-                if (newState != current) newState else null
-            }
-            Logger.logData("second; noteBooks retrieved: $orderedNoteBooks")
-            Logger.logData("third; noteBooks retrieved: ${state.value.noteBooks}")
+    private fun observeNotesUpdates() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.observeNotes()
+                .collectLatest { notes ->
+                    updateState { it.copy(
+                        notes = notes
+                    ) }
+                }
         }
     }
 
-    fun dispatch(intent: NotesScreenIntent) {
+    private fun observeNoteBooksUpdates() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.observeNoteBooks()
+                .collectLatest { noteBooks ->
+                    val orderedNoteBooks = buildList {
+                        add(allNoteBook)
+                        addAll(noteBooks.filterNot {
+                            it.noteBookId in listOf(ALL_NOTEBOOK_ID, DEFAULT_NOTEBOOK_ID, RECENTLY_DELETED_NOTEBOOK_ID) }
+                        )
+                        add(defaultNoteBook)
+                        add(recentlyDeletedNoteBook)
+                    }
+
+                    updateStateIfChanged { it.copy(
+                        noteBooks = orderedNoteBooks
+                    ) }
+                }
+        }
+    }
+
+    suspend fun dispatch(intent: SharedIntent) {
         when(intent) {
-            is NotesScreenIntent.OnClickNoteBookCard -> {
+            is SharedIntent.OnClickNoteBookCard -> {
                 updateSelectedNoteBookCard(intent.noteBook)
             }
-            is NotesScreenIntent.OnAddNewNoteBook -> {
+            is SharedIntent.OnAddNewNoteBook -> {
                 addNewNoteBook(intent.noteBookName, intent.noteBookColor)
             }
-            is NotesScreenIntent.OnDeleteCheckedNoteBooks -> {
+            is SharedIntent.OnDeleteCheckedNoteBooks -> {
                 deleteCheckedNoteBooks(intent.checkedNoteBooksIds)
             }
-            is NotesScreenIntent.OnLockCheckedNoteBooks -> lockCheckedNoteBooks(intent.checkedNoteBooksIds)
-            is NotesScreenIntent.OnEditCheckedNoteBook -> editCheckedNoteBook(intent.color, intent.title, intent.checkedNoteBookId)
+            is SharedIntent.OnLockCheckedNoteBooks -> lockCheckedNoteBooks(intent.checkedNoteBooksIds)
+            is SharedIntent.OnEditCheckedNoteBook -> editCheckedNoteBook(intent.color, intent.title, intent.checkedNoteBookId)
+            is SharedIntent.OnToggleNotesScreenEditMode -> onToggleNotesScreenEditMode(intent.editMode)
+            is SharedIntent.OnLockCheckedNotes -> onLockCheckedNotes(intent.checkedNotesIds)
+            is SharedIntent.OnDeleteCheckedNotes -> onDeleteCheckedNotes(intent.checkedNotesIds)
+            is SharedIntent.OnUnlockLockedNotes -> onUnLockCheckedNotes(intent.checkedNotesIds)
         }
     }
 
@@ -91,8 +108,8 @@ class SharedViewModel @Inject constructor(
         }
     }
 
-    private fun addNewNoteBook(noteBookTitle: String, noteBookColor: Color) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun addNewNoteBook(noteBookTitle: String, noteBookColor: Color) {
+        withContext(Dispatchers.IO) {
             repo.addNoteBook(
                 NoteBook(
                     title = noteBookTitle,
@@ -103,14 +120,14 @@ class SharedViewModel @Inject constructor(
         }
     }
 
-    private fun deleteCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun deleteCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
+        withContext(Dispatchers.IO) {
             repo.deleteNoteBooks(noteBookIds = checkedNoteBooksIds.toList())
         }
     }
 
-    private fun lockCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun lockCheckedNoteBooks(checkedNoteBooksIds: Set<String>) {
+        withContext(Dispatchers.IO) {
             val state = state.value
             val newNoteList = state.notes.fastMap {
                 if (it.noteBookId in checkedNoteBooksIds) it.copy(isLocked = true)
@@ -124,8 +141,8 @@ class SharedViewModel @Inject constructor(
         }
     }
 
-    private fun editCheckedNoteBook(color: Color, title: String, checkedNoteBooksId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private suspend fun editCheckedNoteBook(color: Color, title: String, checkedNoteBooksId: String) {
+        withContext(Dispatchers.IO) {
             val state = state.value
             val newNoteBookList = state.noteBooks.fastMap {
                 if (it.noteBookId == checkedNoteBooksId) it.copy(color = color, title = title)
@@ -135,29 +152,62 @@ class SharedViewModel @Inject constructor(
         }
     }
 
-    private fun observeUpdates() {
-        viewModelScope.launch {
-            repo.observeNotes().collect { notes ->
-                Logger.logData("observeUpdates!!!")
+    private fun onToggleNotesScreenEditMode(notesScreenEditMode: Boolean) {
+        updateState { it.copy(
+            notesScreenEditMode = notesScreenEditMode
+        ) }
+    }
 
-                // Only update if the notes have changed significantly
-                updateStateIfChanged { current ->
-                    val newState = current.copy(notes = notes)
-                    if (newState != current) newState else null
+    private suspend fun onLockCheckedNotes(checkedNotesIds: Set<String>) {
+        withContext(Dispatchers.IO) {
+            val currentNotes = state.value.notes
+
+            // Avoid unnecessary allocations if nothing is checked
+            if (checkedNotesIds.isEmpty()) return@withContext
+
+            // Efficiently map only when needed
+            val updatedNotes = buildList {
+                for (note in currentNotes) {
+                    if (note.noteId in checkedNotesIds && !note.isLocked) {
+                        add(note.copy(isLocked = true)) // use copy to keep other fields
+                    } else {
+                        add(note)
+                    }
                 }
             }
-        }
-        viewModelScope.launch {
-            repo.observeNoteBooks().collect { noteBooks ->
-                Logger.logData("observeNoteBooks")
-
-                updateStateIfChanged { current ->
-                    val newState = current.copy(noteBooks = noteBooks)
-                    if (newState != current) newState else null
-                }
-            }
+            repo.replaceAllNotes{ updatedNotes }
         }
     }
+
+    private suspend fun onUnLockCheckedNotes(checkedNotesIds: Set<String>) {
+        withContext(Dispatchers.IO) {
+            val currentNotes = state.value.notes
+
+            // Avoid unnecessary allocations if nothing is checked
+            if (checkedNotesIds.isEmpty()) return@withContext
+
+            // Efficiently map only when needed
+            val updatedNotes = buildList {
+                for (note in currentNotes) {
+                    if (note.noteId in checkedNotesIds && note.isLocked) {
+                        add(note.copy(isLocked = false)) // use copy to keep other fields
+                    } else {
+                        add(note)
+                    }
+                }
+            }
+            repo.replaceAllNotes{ updatedNotes }
+        }
+    }
+
+
+    private suspend fun onDeleteCheckedNotes(checkedNotesIds: Set<String>) {
+        withContext(Dispatchers.IO) {
+            val newNoteList = state.value.notes.filterNot { it.noteId in checkedNotesIds }
+            repo.replaceAllNotes { newNoteList }
+        }
+    }
+
 
     companion object {
         // Avoid unnecessary updates to the state if not changed

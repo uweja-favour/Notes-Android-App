@@ -245,6 +245,18 @@ val appContainerColor
         }
     }
 
+val appSurfaceColor
+    @Composable
+    get() = when {
+        !isSystemInDarkTheme() -> {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        }
+
+        else -> {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        }
+    }
+
 @Composable
 fun alarmCardContainerColor(alarmIsRinging: Boolean): Color {
     return when {

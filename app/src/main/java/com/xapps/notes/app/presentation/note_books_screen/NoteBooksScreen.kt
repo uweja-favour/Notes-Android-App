@@ -1,34 +1,39 @@
 package com.xapps.notes.app.presentation.note_books_screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.xapps.notes.app.domain.state.Note
-import com.xapps.notes.app.domain.state.NoteBook
+import com.xapps.notes.app.data.notes_screen.local.NoteBook
+import com.xapps.notes.app.presentation.note_books_screen.ui_components.EditBottomSheet
 import com.xapps.notes.app.presentation.note_books_screen.ui_components.NoteBooksBody
-import com.xapps.notes.app.presentation.note_books_screen.ui_components.QuarterScreenBottomSheet
-import com.xapps.notes.app.presentation.notes_screen.NotesScreenIntent
+import com.xapps.notes.app.presentation.notes_screen.SharedIntent
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
-import com.xapps.notes.app.presentation.shared_ui_components.LoadingScreen
 import com.xapps.notes.ui.theme.Dimens
-import kotlinx.coroutines.delay
+import com.xapps.notes.ui.theme.appSurfaceColor
+import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun NoteBookScreen(
-    onBackPress: () -> Unit,
+    onNavigate: () -> Unit,
     sharedViewModel: SharedViewModel,
-    noteBookScreenVM: NoteBookScreenVM = viewModel(),
-    navigateToNoteBook: (String) -> Unit
+    navigateToNoteBook: (String) -> Unit,
+    onLockedNotesClick: () -> Unit,
+    noteBookScreenVM: NoteBookScreenVM = koinViewModel()
 ) {
+    val scope = rememberCoroutineScope()
     val noteScreenState by sharedViewModel.state.collectAsStateWithLifecycle()
     val uiState by noteBookScreenVM.state.collectAsStateWithLifecycle()
 
@@ -36,7 +41,7 @@ fun NoteBookScreen(
         { noteBookScreenVM.dispatch(it) }
     }
 
-    val sharedViewModelDispatch = remember<(NotesScreenIntent) -> Unit>{
+    val sharedViewModelDispatch = remember<suspend (SharedIntent) -> Unit>{
         { sharedViewModel.dispatch(it) }
     }
 
@@ -85,30 +90,35 @@ fun NoteBookScreen(
         requireNotNull(editableNotebook) { "editableNoteBook should not be null when saving" }
         showBottomSheet = true
     }
-    fun onLockClickImpl() {
+    fun onLockClickImpl() = scope.launch {
         sharedViewModelDispatch(
-            NotesScreenIntent.OnLockCheckedNoteBooks(
+            SharedIntent.OnLockCheckedNoteBooks(
                 checkedNoteBookIds
             )
         )
-        toggleCheckBoxActiveState(false)
-    }
-    fun onDeleteClickImpl() {
-        sharedViewModelDispatch(
-            NotesScreenIntent.OnDeleteCheckedNoteBooks(
-                checkedNoteBookIds
-            )
-        )
-        checkedNoteBookIds.clear()
         toggleCheckBoxActiveState(false)
     }
 
+    fun onDeleteClickImpl() = scope.launch {
+       sharedViewModelDispatch(
+           SharedIntent.OnDeleteCheckedNoteBooks(
+               checkedNoteBookIds
+           )
+       )
+       checkedNoteBookIds.clear()
+       toggleCheckBoxActiveState(false)
+    }
+
+    fun onBackPress() {
+        checkedNoteBookIds.clear()
+        toggleCheckBoxActiveState(false)
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             NoteBookScreenTopBar(
                 checkBoxActiveState = checkBoxActiveState,
-                onBackPress = onBackPress,
+                onNavigateBack = { onNavigate() },
                 toggleCheckboxActiveState = {
                     dispatch(NoteBooksScreenIntent.OnToggleCheckboxActiveState(it))
                 }
@@ -127,7 +137,8 @@ fun NoteBookScreen(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            color = appSurfaceColor
         ) {
             NoteBooksBody(
                 modifier = Modifier
@@ -145,28 +156,36 @@ fun NoteBookScreen(
                 handleCheckedChange = ::handleCheckedChange,
                 toggleCheckboxActiveState = {
                     dispatch(NoteBooksScreenIntent.OnToggleCheckboxActiveState(true))
-                }
+                },
+                onBackPress = ::onBackPress,
+                onLockedNotesClick = { onLockedNotesClick() }
             )
 
-            QuarterScreenBottomSheet(
-                showSheet = showBottomSheet,
-                title = editableNotebook?.title,
-                color = editableNotebook?.color,
-                onSave = { newNoteBookTitle: String, newNoteBookColor: Color, ->
-                    requireNotNull(editableNotebook) { "editableNoteBook should not be null when saving" }
-                    sharedViewModelDispatch(
-                        NotesScreenIntent.OnEditCheckedNoteBook(
-                            editableNotebook!!.noteBookId, newNoteBookTitle, newNoteBookColor
-                        )
+            editableNotebook?.color?.let {
+                editableNotebook?.title?.let { it1 ->
+                    EditBottomSheet(
+                        showSheet = showBottomSheet,
+                        title = it1,
+                        color = it,
+                        onSave = { newNoteBookTitle: String, newNoteBookColor: Color, ->
+                            scope.launch {
+                                requireNotNull(editableNotebook) { "editableNoteBook should not be null when saving" }
+                                sharedViewModelDispatch(
+                                    SharedIntent.OnEditCheckedNoteBook(
+                                        editableNotebook!!.noteBookId, newNoteBookTitle, newNoteBookColor
+                                    )
+                                )
+                                dispatch(
+                                    NoteBooksScreenIntent.OnToggleCheckboxActiveState(enabled = false)
+                                )
+                            }
+                        },
+                        onDismissRequest = {
+                            showBottomSheet = false
+                        }
                     )
-                    dispatch(
-                        NoteBooksScreenIntent.OnToggleCheckboxActiveState(enabled = false)
-                    )
-                },
-                onDismissRequest = {
-                    showBottomSheet = false
                 }
-            )
+            }
         }
     }
 }

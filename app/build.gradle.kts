@@ -1,10 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization) // For Type Safe Navigation
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.kotlin.serialization)
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" // Add the Kotlin Compose plugin here with the appropriate version
 }
 
 android {
@@ -12,8 +10,8 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.xapps.mynewapplication1"
-        minSdk = 24
+        applicationId = "com.xapps.notes"
+        minSdk = 29
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -35,26 +33,81 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.10"
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
 dependencies {
-    // Core and Lifecycle
+    // Core
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.material3)
+
+    // Compose BOM
+    implementation(platform(libs.androidx.compose.bom))
+
+    // Compose UI
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.text.google.fonts)
+    implementation("androidx.compose.material:material-icons-extended:1.7.3")
+    implementation("androidx.compose.foundation:foundation:1.5.0")
+    implementation("androidx.compose.runtime:runtime:1.6.0")
+
+    // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.6.1")
+
+    // Navigation with Kotlin Serialization
+    implementation(libs.navigation.compose)
+
+    // Serialization
+    implementation(libs.kotlinx.serialization.json)
+
+    // Koin
+    implementation(libs.bundles.koin)
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Accompanist
+    implementation("com.google.accompanist:accompanist-pager:0.32.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.28.0")
+
+    // Dialogs
+    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.8.1-rc")
+
+    // Profileinstaller
+    implementation("androidx.profileinstaller:profileinstaller:1.3.0")
+
+    // Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+//    implementation(libs.androidx.biometric.ktx)
+    // kapt("androidx.room:room-compiler:2.6.1")
+
+    // Desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.6")
 
     // Testing
     testImplementation(libs.junit)
@@ -65,53 +118,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // Type Safe Navigation
-    implementation(libs.navigation.compose)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.navigation.compose.v280alpha08)
-
-    // Animation & UI
-    implementation("androidx.compose.animation:animation:1.5.0")
-    implementation("androidx.compose.material:material-icons-extended:1.7.3")
-    implementation("androidx.compose.material3:material3:1.2.0")
-
-    // Hilt & Dagger
-    implementation("com.google.dagger:hilt-android:2.49")
-    kapt("com.google.dagger:hilt-compiler:2.49")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-    implementation("com.google.dagger:dagger:2.50")
-    kapt("com.google.dagger:dagger-compiler:2.50")
-
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-
-    // Compose Dependencies
-    implementation("androidx.compose.runtime:runtime:1.5.0")
-    implementation("androidx.compose.foundation:foundation:1.5.0")
-    implementation("androidx.compose.ui:ui:1.5.0")
-    implementation("androidx.compose.ui:ui-tooling:1.5.0")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.5.0")
-
-    // Accompanist
-    implementation("com.google.accompanist:accompanist-pager:0.32.0")
-    implementation("com.google.accompanist:accompanist-permissions:0.28.0")
-
-    // Gson
-    implementation("com.google.code.gson:gson:2.10.1")
-
-    // Datastore
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Material Dialogs
-    implementation("io.github.vanpra.compose-material-dialogs:datetime:0.8.1-rc")
-
-    // Desugaring JDK Libs (for API level 21+)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.6")
+    implementation("androidx.biometric:biometric:1.1.0")
 }
