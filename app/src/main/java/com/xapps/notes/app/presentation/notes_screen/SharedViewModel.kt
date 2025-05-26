@@ -5,6 +5,7 @@ import androidx.compose.ui.util.fastMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xapps.notes.app.Logger
+import com.xapps.notes.app.Logger.logError
 import com.xapps.notes.app.data.notes_screen.local.Note
 import com.xapps.notes.app.data.notes_screen.local.NoteBook
 import com.xapps.notes.app.domain.model.notes_screen.NotesScreenRepo
@@ -110,8 +111,12 @@ class SharedViewModel(
             is SharedIntent.OnUnlockLockedNotes -> {
                 onUnLockCheckedNotes(intent.checkedNotesIds)
             }
+            is SharedIntent.OnMoveNoteToNotebook -> {
+                onMoveNoteToNotebook(intent.noteBookId, intent.notesIds)
+            }
         }
     }
+
 
     private fun updateSelectedNoteBookCard(newSelectedNoteBook: NoteBook) {
         val currentState = state.value
@@ -259,7 +264,7 @@ class SharedViewModel(
                                 noteId = it.noteId,
                                 noteBookId = RECENTLY_DELETED_NOTEBOOK_ID,
                                 noteBookName = RECENTLY_DELETED_NOTEBOOK_NAME,
-                                isLocked = it.isLocked
+                                isLocked = false
                             )
                         } else
                             it
@@ -273,6 +278,30 @@ class SharedViewModel(
         }
     }
 
+    private suspend fun onMoveNoteToNotebook(noteBookId: String, notesIds: List<String>): Boolean {
+        return try {
+            val noteBook = repo.retrieveNoteBooks().find { it.noteBookId == noteBookId }!!
+            val newNoteList = repo.retrieveNotes().map {
+                if (it.noteId in notesIds) {
+                    Note(
+                        heading = it.heading,
+                        content = it.content,
+                        dateModified = it.dateModified,
+                        timeModified = it.timeModified,
+                        noteId = it.noteId,
+                        noteBookId = noteBook.noteBookId,
+                        noteBookName = noteBook.noteBookTitle,
+                        isLocked = it.isLocked
+                    )
+                } else it
+            }
+            repo.replaceAllNotes { newNoteList }
+            true
+        } catch (e: Exception) {
+            e.message?.let { logError(it) }
+            false
+        }
+    }
 
     companion object {
         // Avoid unnecessary updates to the state if not changed

@@ -1,10 +1,9 @@
-package com.xapps.notes.app.presentation.note_books_screen.ui_components
+package com.xapps.notes.app.presentation.shared_ui_components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color

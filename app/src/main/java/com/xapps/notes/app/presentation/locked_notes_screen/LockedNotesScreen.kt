@@ -12,12 +12,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.xapps.notes.app.domain.state.NotesScreenStateStore
 import com.xapps.notes.app.presentation.notes_screen.SharedIntent
 import com.xapps.notes.app.presentation.notes_screen.SharedViewModel
+import com.xapps.notes.app.presentation.util.toastThis
 import com.xapps.notes.ui.theme.Dimens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +32,7 @@ fun LockedNotesScreen(
     navController: NavHostController,
     onBackPress: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sharedUiState by NotesScreenStateStore.state.collectAsStateWithLifecycle()
     val lockedNotes by produceState(
@@ -50,8 +53,8 @@ fun LockedNotesScreen(
     val checkBoxIsActive by rememberUpdatedState(
         checkedNotesIds.size >= 1
     )
-    val dispatch = remember<suspend (SharedIntent) -> Unit> {
-        { sharedViewModel.dispatch(it) }
+    val dispatch = remember<suspend (SharedIntent) -> Boolean> {
+        { withContext(Dispatchers.IO) { sharedViewModel.dispatch(it) } }
     }
 
     BackHandler {
@@ -93,11 +96,16 @@ fun LockedNotesScreen(
                 },
                 onDeleteClick = {
                     scope.launch {
-                        dispatch(
-                            SharedIntent.OnDeleteCheckedNotes(checkedNotesIds)
+                        val ids = checkedNotesIds.mapTo(HashSet(checkedNotesIds.size)) { it }
+                        val success = dispatch(
+                            SharedIntent.OnDeleteCheckedNotes(ids)
                         )
+                        if (success) {
+                            checkedNotesIds.clear()
+                        } else {
+                            toastThis("Failed to delete notes", context)
+                        }
                     }
-                    checkedNotesIds.clear()
                 },
             )
         }

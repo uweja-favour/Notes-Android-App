@@ -24,7 +24,6 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xapps.notes.R
+import com.xapps.notes.app.presentation.shared_ui_components.CircleRing
 import com.xapps.notes.app.presentation.util.onTap
 import com.xapps.notes.ui.theme.Dimens
 import com.xapps.notes.ui.theme.aestheticHue

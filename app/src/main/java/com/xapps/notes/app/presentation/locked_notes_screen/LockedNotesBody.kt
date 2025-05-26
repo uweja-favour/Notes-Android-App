@@ -3,6 +3,7 @@ package com.xapps.notes.app.presentation.locked_notes_screen
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.overscroll
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
@@ -52,7 +54,7 @@ fun LockedNotesBody(
                 colors = CardDefaults.cardColors(appContainerColor),
                 shape = RoundedCornerShape(Dimens.radiusMedium)
             ) {
-                lockedNotes.forEach { note ->
+                lockedNotes.forEachIndexed { index, note ->
                     NoteCard(
                         modifier = Modifier
                             .padding(Dimens.spacingMedium)
@@ -90,6 +92,13 @@ fun LockedNotesBody(
                             handleCheckedChange(noteId, isChecked)
                         }
                     )
+                    if (index < lockedNotes.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .fillMaxWidth(.9f)
+                                .align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
         }

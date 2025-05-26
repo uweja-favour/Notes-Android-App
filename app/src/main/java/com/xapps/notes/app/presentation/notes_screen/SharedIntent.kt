@@ -14,4 +14,5 @@ sealed class SharedIntent {
     data class OnDeleteCheckedNotes(val checkedNotesIds: Set<String>) : SharedIntent()
     data class OnDeleteCheckedNotesForever(val checkedNotesIds: Set<String>) : SharedIntent()
     data class OnUnlockLockedNotes(val checkedNotesIds: Set<String>) : SharedIntent()
+    data class OnMoveNoteToNotebook(val noteBookId: String, val notesIds: List<String>) : SharedIntent()
 }

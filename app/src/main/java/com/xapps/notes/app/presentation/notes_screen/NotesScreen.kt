@@ -41,8 +41,6 @@ import com.xapps.notes.app.domain.state.RECENTLY_DELETED_NOTEBOOK_ID
 import com.xapps.notes.app.presentation.notes_screen.ui_components.NotesScreenBody
 import com.xapps.notes.app.presentation.notes_screen.ui_components.Header
 import com.xapps.notes.app.presentation.shared_ui_components.LoadingScreen
-import com.xapps.notes.app.presentation.util.Constants.ALL_NOTES
-import com.xapps.notes.app.presentation.util.Constants.DEFAULT_NOTE_BOOK_NAME
 import com.xapps.notes.app.presentation.util.onNavigateToAddNoteScreen
 import com.xapps.notes.app.presentation.util.onNavigateToNoteViewScreen
 import com.xapps.notes.app.presentation.util.onNavigateToNotebookScreen
@@ -61,9 +59,7 @@ import java.util.Locale
 fun NotesScreen(
     modifier: Modifier = Modifier,
     sharedViewModel: SharedViewModel,
-    navController: NavHostController,
-//    onNavigateToAddNewNote: (String) -> Unit,
-//    onNavigateToNoteBooksScreen: () -> Unit
+    navController: NavHostController
 ) {
 
     val uiState by sharedViewModel.state.collectAsStateWithLifecycle()
@@ -78,7 +74,7 @@ fun NotesScreen(
         showLoading.value = loadingState
     }
 
-    val dispatch = remember<suspend (SharedIntent) -> Unit> { {
+    val dispatch = remember<suspend (SharedIntent) -> Boolean> { {
         withContext(Dispatchers.IO) {
             sharedViewModel.dispatch(it)
         }
@@ -120,8 +116,10 @@ fun NotesScreen(
 
     var showSearchScreen by rememberSaveable { mutableStateOf(false) }
     var showAboutAppScreen by rememberSaveable { mutableStateOf(false) }
+    var showMoveNoteScreen by rememberSaveable { mutableStateOf(false) }
     val searchScreenSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val aboutScreenSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val moveNoteScreenSheetSate = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var searchQuery by remember { mutableStateOf("") }
     var job: Job? by remember { mutableStateOf(null) }
     val searchNoteList by produceState(
@@ -215,7 +213,10 @@ fun NotesScreen(
                     noOfCheckedNotes = checkedNotesIds.size,
                     notesScreenEditMode = uiState.notesScreenEditMode,
                     onMoveCheckedNotes = {
-
+                        scope.launch {
+                            showMoveNoteScreen = true
+                            moveNoteScreenSheetSate.show()
+                        }
                     },
                     onLockCheckedNotes = {
                         scope.launch {
@@ -359,6 +360,34 @@ fun NotesScreen(
                             aboutScreenSheetState.hide()
                             showAboutAppScreen = false
                         }
+                    }
+                )
+            }
+
+            if (showMoveNoteScreen) {
+                val noteBookList = remember {
+                    uiState.noteBooks.filterNot { it.noteBookId in setOf(ALL_NOTEBOOK_ID, RECENTLY_DELETED_NOTEBOOK_ID, DEFAULT_NOTEBOOK_ID) }
+                }
+                MoveNoteScreen(
+                    sheetState = moveNoteScreenSheetSate,
+                    onDismiss = {
+                        if (uiState.notesScreenEditMode) {
+                            dispatch(
+                                SharedIntent.OnToggleNotesScreenEditMode(false)
+                            )
+                            checkedNotesIds.clear()
+                        }
+                        moveNoteScreenSheetSate.hide()
+                        showMoveNoteScreen = false
+                    },
+                    noteBookList = noteBookList,
+                    onMoveNoteToNotebook = { noteBookId: String ->
+                        dispatch(
+                            SharedIntent.OnMoveNoteToNotebook(
+                                noteBookId,
+                                checkedNotesIds.toList()
+                            )
+                        )
                     }
                 )
             }
